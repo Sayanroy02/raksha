@@ -1,0 +1,71 @@
+name: raksha_client
+description: Raksha+ — AI-Powered Women Safety App
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # ---------- State Management ----------
+  get: ^4.6.6                        # GetX — state, routes, DI
+
+  # ---------- Networking ----------
+  dio: ^5.7.0                        # HTTP client with interceptors
+  pretty_dio_logger: ^1.4.0         # Readable logs for API calls
+
+  # ---------- Secure Storage ----------
+  flutter_secure_storage: ^9.2.2    # Store JWT tokens securely
+
+  # ---------- Maps & Location ----------
+  google_maps_flutter: ^2.9.0       # Google Maps widget
+  geolocator: ^13.0.0               # GPS location tracking
+
+  # ---------- Camera & Media ----------
+  camera: ^0.11.0+2                 # Camera plugin
+  image_picker: ^1.1.2              # Pick images from gallery/camera
+
+  # ---------- Permissions ----------
+  permission_handler: ^11.3.1       # Runtime permissions
+
+  # ---------- UI & Animations ----------
+  google_fonts: ^6.2.1              # Poppins typography
+  lottie: ^3.1.0                    # Lottie JSON animations
+  flutter_animate: ^4.5.0           # Chainable micro-animations
+  smooth_page_indicator: ^1.1.0    # Onboarding page dots
+  cached_network_image: ^3.4.1     # Network image caching
+  shimmer: ^3.0.0                   # Loading shimmer effect
+
+  # ---------- Utilities ----------
+  intl: ^0.19.0                     # Date/time formatting
+  shared_preferences: ^2.3.3        # Non-sensitive local storage
+  path_provider: ^2.1.4             # File system paths
+  uuid: ^4.4.2                      # Generate unique IDs
+  url_launcher: ^6.3.0             # Launch dialler / browser
+
+  # ---------- QR Code & Guardian Sharing ----------
+  qr_flutter: ^4.1.0                # Generate Guardian QR code
+  mobile_scanner: ^6.0.0            # Scan Guardian QR code with camera
+  audioplayers: ^6.1.0              # Play emergency audio streams
+
+  # ---------- Environment Variables ----------
+  flutter_dotenv: ^5.2.1            # Load .env variables
+
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - .env
+    - assets/images/
+    - assets/animations/
+    - assets/icons/

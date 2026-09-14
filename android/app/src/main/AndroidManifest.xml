@@ -1,0 +1,122 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <!-- ═══════════════════════════════════════════════════════
+         Raksha+ AndroidManifest.xml
+         All required permissions for safety features:
+         location, camera, microphone, internet, etc.
+         ═══════════════════════════════════════════════════════ -->
+
+    <!-- ── INTERNET & NETWORK ──────────────────────────────── -->
+    <!-- Required for all API calls to the Raksha+ backend -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+
+    <!-- ── LOCATION ────────────────────────────────────────── -->
+    <!-- Fine location = GPS precision for SOS & live tracking -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <!-- Coarse = network-based fallback -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <!-- Background location = keep broadcasting during SOS even if app is backgrounded -->
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION"/>
+
+    <!-- ── CAMERA ──────────────────────────────────────────── -->
+    <!-- Required for evidence capture (photo + video) -->
+    <uses-permission android:name="android.permission.CAMERA"/>
+    <uses-feature android:name="android.hardware.camera" android:required="false"/>
+    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false"/>
+
+    <!-- ── MICROPHONE / AUDIO ──────────────────────────────── -->
+    <!-- Required for audio evidence recording and AI threat audio analysis -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+
+    <!-- ── STORAGE ─────────────────────────────────────────── -->
+    <!-- Read/write saved evidence files (photos, videos, audio) -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32"/>
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="28"
+        tools:replace="android:maxSdkVersion"/>
+    <!-- Android 13+ granular media permissions -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO"/>
+    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO"/>
+
+    <!-- ── FOREGROUND SERVICE ──────────────────────────────── -->
+    <!-- Keeps location broadcasting alive when app is in background during SOS -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION"/>
+
+    <!-- ── VIBRATION ───────────────────────────────────────── -->
+    <!-- Vibrates device when SOS is triggered to confirm activation -->
+    <uses-permission android:name="android.permission.VIBRATE"/>
+
+    <!-- ── BOOT ────────────────────────────────────────────── -->
+    <!-- Allow the app to restart services on device reboot (future push notifications) -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+
+    <!-- ── PHONE ───────────────────────────────────────────── -->
+    <!-- Used to launch the phone dialler to call emergency contacts -->
+    <uses-permission android:name="android.permission.CALL_PHONE"/>
+
+    <application
+        android:label="Raksha+"
+        android:name="${applicationName}"
+        android:icon="@mipmap/ic_launcher"
+        android:usesCleartextTraffic="false"
+        android:requestLegacyExternalStorage="true">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTop"
+            android:taskAffinity=""
+            android:theme="@style/LaunchTheme"
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
+            android:hardwareAccelerated="true"
+            android:windowSoftInputMode="adjustResize">
+
+            <!-- Splash screen metadata -->
+            <meta-data
+              android:name="io.flutter.embedding.android.NormalTheme"
+              android:resource="@style/NormalTheme" />
+
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity>
+
+        <!-- Google Maps API key — used for the Live Location map -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="AIzaSyAu4M-9XYXvSJ-cS-1rdT1ckbGSuHgKhwQ"/>
+
+        <!-- Tell Flutter to use Android v2 embedding -->
+        <meta-data
+            android:name="flutterEmbedding"
+            android:value="2" />
+
+        <!-- Don't compress Flutter assets -->
+        <meta-data
+            android:name="io.flutter.embedding.android.EnableImpeller"
+            android:value="true" />
+    </application>
+
+    <!-- Flutter needs these queries to launch the phone, browser, and WhatsApp intents -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.DIAL"/>
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="https"/>
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="whatsapp"/>
+        </intent>
+        <package android:name="com.whatsapp" />
+        <package android:name="com.whatsapp.w4b" />
+    </queries>
+
+</manifest>

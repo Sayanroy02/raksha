@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CADisableMinimumFrameDurationOnPhone</key>
+	<true/>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<key>CFBundleDisplayName</key>
+	<string>Raksha+</string>
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>raksha_client</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>$(FLUTTER_BUILD_NAME)</string>
+	<key>CFBundleSignature</key>
+	<string>????</string>
+	<key>CFBundleVersion</key>
+	<string>$(FLUTTER_BUILD_NUMBER)</string>
+	<key>LSRequiresIPhoneOS</key>
+	<true/>
+	<key>UIApplicationSceneManifest</key>
+	<dict>
+		<key>UIApplicationSupportsMultipleScenes</key>
+		<false/>
+		<key>UISceneConfigurations</key>
+		<dict>
+			<key>UIWindowSceneSessionRoleApplication</key>
+			<array>
+				<dict>
+					<key>UISceneClassName</key>
+					<string>UIWindowScene</string>
+					<key>UISceneConfigurationName</key>
+					<string>flutter</string>
+					<key>UISceneDelegateClassName</key>
+					<string>$(PRODUCT_MODULE_NAME).SceneDelegate</string>
+					<key>UISceneStoryboardFile</key>
+					<string>Main</string>
+				</dict>
+			</array>
+		</dict>
+	</dict>
+	<key>UIApplicationSupportsIndirectInputEvents</key>
+	<true/>
+	<key>UILaunchStoryboardName</key>
+	<string>LaunchScreen</string>
+	<key>UIMainStoryboardFile</key>
+	<string>Main</string>
+	<key>UISupportedInterfaceOrientations</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+	<key>UISupportedInterfaceOrientations~ipad</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationPortraitUpsideDown</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+	<!-- ══════════════════════════════════════════════════════
+	     iOS Permission Usage Descriptions
+	     Apple requires a human-readable reason for each
+	     permission. These strings appear in the system
+	     permission dialog shown to the user.
+	     ══════════════════════════════════════════════════════ -->
+
+	<!-- Location — when app is open -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Raksha+ uses your location to share it with your safety circle and show it on the map during an SOS emergency.</string>
+
+	<!-- Location — background (required for live SOS tracking) -->
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Raksha+ needs background location access to keep broadcasting your position to trusted contacts during an active SOS alert.</string>
+
+	<!-- Camera — evidence capture -->
+	<key>NSCameraUsageDescription</key>
+	<string>Raksha+ uses the camera to capture photos and videos as evidence during an emergency situation.</string>
+
+	<!-- Microphone — audio recording + AI threat detection -->
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Raksha+ uses the microphone to record audio evidence and to analyse surrounding sounds for potential threats.</string>
+
+	<!-- Photo library — save captured evidence -->
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Raksha+ needs access to your photo library to save captured evidence for later review.</string>
+
+	<!-- Photo library — add photos (iOS 14+) -->
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Raksha+ saves captured photos and videos to your photo library as evidence.</string>
+
+</dict>
+</plist>

@@ -86,16 +86,19 @@ class _HomeViewState extends State<HomeView> {
                     );
                   }),
                   // Notification bell
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: AppColors.cardBg,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: AppColors.divider),
+                  GestureDetector(
+                    onTap: () => Get.toNamed(AppRoutes.notifications),
+                    child: Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: AppColors.cardBg,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: AppColors.divider),
+                      ),
+                      child: const Icon(Icons.notifications_outlined,
+                          color: AppColors.primary),
                     ),
-                    child: const Icon(Icons.notifications_outlined,
-                        color: AppColors.primary),
                   ),
                 ],
               ).animate().fadeIn(duration: 400.ms),

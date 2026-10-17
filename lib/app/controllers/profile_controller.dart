@@ -16,10 +16,10 @@ class ProfileController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _loadUser();
+    loadUser();
   }
 
-  Future<void> _loadUser() async {
+  Future<void> loadUser() async {
     final json = await _storage.getUserData();
     if (json != null) {
       user.value = UserModel.fromJsonString(json);
@@ -28,6 +28,7 @@ class ProfileController extends GetxController {
 
   Future<void> logout() async {
     await _storage.clearAll();
+    user.value = null;
     Get.offAllNamed(AppRoutes.login);
   }
 }

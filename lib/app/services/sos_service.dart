@@ -72,4 +72,13 @@ class SosService {
       'duration_seconds': durationSeconds,
     });
   }
+
+  /// Manually or automatically dispatch emergency live location email via Resend
+  /// POST /sos/{incident_id}/send-email
+  Future<Response> sendEmailAlert(String incidentId, {String? email}) {
+    return _api.dio.post(
+      '/sos/$incidentId/send-email',
+      data: email != null && email.isNotEmpty ? {'email': email} : null,
+    );
+  }
 }

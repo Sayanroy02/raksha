@@ -29,6 +29,8 @@ import '../views/safety_circle/safety_circle_view.dart';
 import '../views/location_history/location_history_view.dart';
 import '../views/safety_assistant/safety_assistant_view.dart';
 import '../views/profile/profile_view.dart';
+import '../views/profile/personal_info_view.dart';
+import '../views/notifications/notifications_view.dart';
 import '../views/guardian/guardian_qr_view.dart';
 import '../views/guardian/guardian_scanner_view.dart';
 import '../views/guardian/guardian_track_view.dart';
@@ -114,6 +116,16 @@ class AppPages {
       name: AppRoutes.profile,
       page: () => const ProfileView(),
       binding: ProfileBinding(),
+      transition: Transition.rightToLeft,
+    ),
+    GetPage(
+      name: AppRoutes.personalInfo,
+      page: () => const PersonalInfoView(),
+      transition: Transition.rightToLeft,
+    ),
+    GetPage(
+      name: AppRoutes.notifications,
+      page: () => const NotificationsView(),
       transition: Transition.rightToLeft,
     ),
     GetPage(

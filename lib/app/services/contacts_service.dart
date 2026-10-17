@@ -13,18 +13,24 @@ class ContactsService {
   /// GET /contacts
   Future<Response> getContacts() => _api.dio.get('/contacts');
 
-  /// Add a new contact to the safety circle
+  /// Add a new contact to the safety circle with name, phone, email & relation
   /// POST /contacts
   Future<Response> addContact({
     required String name,
     required String phone,
+    String? email,
     required String relation,
   }) {
-    return _api.dio.post('/contacts', data: {
+    final payload = <String, dynamic>{
       'name': name,
       'phone': phone,
       'relation': relation,
-    });
+      'relationship': relation,
+    };
+    if (email != null && email.trim().isNotEmpty) {
+      payload['email'] = email.trim();
+    }
+    return _api.dio.post('/contacts', data: payload);
   }
 
   /// Remove a contact from the safety circle

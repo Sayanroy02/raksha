@@ -8,28 +8,31 @@
 //  • Expose current user to all views via GetX
 // ─────────────────────────────────────────────
 import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:raksha_client/app/theme/app_colors.dart';
 
 import '../models/user_model.dart';
 import '../routes/app_routes.dart';
+import '../services/app_lock_service.dart';
 import '../services/auth_service.dart';
 import '../services/storage_service.dart';
 
 class AuthController extends GetxController {
-  final AuthService    _authService;
+  final AuthService _authService;
   final StorageService _storage;
 
   AuthController(this._authService, this._storage);
 
   // ── Observable state ─────────────────────────
-  final Rx<UserModel?> user        = Rx(null);
-  final RxBool         isLoading   = false.obs;
-  final RxString       errorMsg    = ''.obs;
+  final Rx<UserModel?> user = Rx(null);
+  final RxBool isLoading = false.obs;
+  final RxString errorMsg = ''.obs;
 
   // Form field values (bound from TextEditingControllers in views)
-  final RxString nameInput     = ''.obs;
-  final RxString emailInput    = ''.obs;
-  final RxString phoneInput    = ''.obs;
+  final RxString nameInput = ''.obs;
+  final RxString emailInput = ''.obs;
+  final RxString phoneInput = ''.obs;
   final RxString passwordInput = ''.obs;
 
   // ── Lifecycle ────────────────────────────────
@@ -56,14 +59,19 @@ class AuthController extends GetxController {
       return;
     }
     isLoading.value = true;
-    errorMsg.value  = '';
+    errorMsg.value = '';
     try {
       final resp = await _authService.login(
-        email:    emailInput.value.trim(),
+        email: emailInput.value.trim(),
         password: passwordInput.value,
       );
       await _handleTokenResponse(resp.data as Map<String, dynamic>);
       Get.offAllNamed(AppRoutes.home);
+      Future.delayed(const Duration(milliseconds: 600), () {
+        if (Get.context != null) {
+          AppLockService().promptAppLockSetupIfNeeded(Get.context!);
+        }
+      });
     } on DioException catch (e) {
       errorMsg.value = _parseError(e);
     } finally {
@@ -73,22 +81,35 @@ class AuthController extends GetxController {
 
   /// Register a new account
   Future<void> register() async {
-    if (nameInput.isEmpty || emailInput.isEmpty ||
-        phoneInput.isEmpty || passwordInput.isEmpty) {
+    if (nameInput.isEmpty ||
+        emailInput.isEmpty ||
+        phoneInput.isEmpty ||
+        passwordInput.isEmpty) {
       errorMsg.value = 'All fields are required';
       return;
     }
     isLoading.value = true;
-    errorMsg.value  = '';
+    errorMsg.value = '';
     try {
-      final resp = await _authService.register(
-        name:     nameInput.value.trim(),
-        email:    emailInput.value.trim(),
-        phone:    phoneInput.value.trim(),
+      await _authService.register(
+        name: nameInput.value.trim(),
+        email: emailInput.value.trim(),
+        phone: phoneInput.value.trim(),
         password: passwordInput.value,
       );
-      await _handleTokenResponse(resp.data as Map<String, dynamic>);
-      Get.offAllNamed(AppRoutes.home);
+      // Do not auto-login to home; redirect to login page with email autofilled
+      errorMsg.value = '';
+      passwordInput.value = '';
+      Get.offNamed(AppRoutes.login);
+      Get.snackbar(
+        'Account Created Successfully!',
+        'Please enter your password to sign in.',
+        backgroundColor: AppColors.cardBg,
+        colorText: Colors.white,
+        icon: const Icon(Icons.check_circle_outline, color: Colors.greenAccent),
+        duration: const Duration(seconds: 4),
+        snackPosition: SnackPosition.TOP,
+      );
     } on DioException catch (e) {
       errorMsg.value = _parseError(e);
     } finally {
@@ -114,7 +135,7 @@ class AuthController extends GetxController {
     // Fetch full user profile
     try {
       final me = await _authService.getMe();
-      final u  = UserModel.fromJson(me.data as Map<String, dynamic>);
+      final u = UserModel.fromJson(me.data as Map<String, dynamic>);
       user.value = u;
       await _storage.saveUserData(u.toJsonString());
     } catch (_) {/* non-fatal */}

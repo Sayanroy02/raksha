@@ -13,6 +13,7 @@ import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../routes/app_routes.dart';
+import '../../services/app_lock_service.dart';
 import '../../services/storage_service.dart';
 import '../../theme/app_colors.dart';
 
@@ -45,7 +46,14 @@ class _SplashViewState extends State<SplashView> {
     // Returning user — check for a stored access token
     final token = await storage.getAccessToken();
     if (token != null) {
-      Get.offAllNamed(AppRoutes.home);
+      if (AppLockService().isLockEnabled) {
+        if (!mounted) return;
+        AppLockService().showUnlockBarrier(context, () {
+          Get.offAllNamed(AppRoutes.home);
+        });
+      } else {
+        Get.offAllNamed(AppRoutes.home);
+      }
     } else {
       Get.offAllNamed(AppRoutes.login);
     }
@@ -59,29 +67,32 @@ class _SplashViewState extends State<SplashView> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // ── Shield logo icon ─────────────────
+            // ── Shield logo icon / Badge ─────────────────
             Container(
-              width: 110,
-              height: 110,
+              width: 120,
+              height: 120,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                gradient: const LinearGradient(
-                  colors: AppColors.pinkGradient,
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.primary.withOpacity(0.5),
-                    blurRadius: 30,
-                    spreadRadius: 5,
+                    color: AppColors.primary.withValues(alpha: 0.5),
+                    blurRadius: 36,
+                    spreadRadius: 6,
                   ),
                 ],
               ),
-              child: const Icon(
-                Icons.shield_rounded,
-                size: 60,
-                color: Colors.white,
+              child: ClipOval(
+                child: Image.asset(
+                  'assets/logo/Protective Gradient Profile Badge.png',
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Container(
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(colors: AppColors.pinkGradient),
+                    ),
+                    child: const Icon(Icons.shield_rounded, size: 60, color: Colors.white),
+                  ),
+                ),
               ),
             )
                 .animate()

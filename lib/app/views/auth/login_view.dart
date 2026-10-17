@@ -18,7 +18,7 @@ class LoginView extends GetView<AuthController> {
   @override
   Widget build(BuildContext context) {
     // Local TextEditingControllers bound to the GetX controller
-    final emailCtrl    = TextEditingController();
+    final emailCtrl    = TextEditingController(text: controller.emailInput.value);
     final passwordCtrl = TextEditingController();
     final obscure      = true.obs; // toggle password visibility
 

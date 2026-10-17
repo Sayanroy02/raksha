@@ -30,10 +30,16 @@ class AppConstants {
   /// Active base URL
   static String get apiBaseUrl => _useProduction ? _prodBase : _localBase;
 
-  // ── Google Maps ──────────────────────────────
+  // ── Maps & Geolocation ────────────────────────
   static String get googleMapsApiKey =>
       dotenv.env['GOOGLE_MAPS_API_KEY'] ??
       'AIzaSyAu4M-9XYXvSJ-cS-1rdT1ckbGSuHgKhwQ';
+
+  static String get geoapifyApiKey =>
+      dotenv.env['GEOAPIFY_API_KEY_GEOLOCATOR'] ?? '';
+
+  static String get resendApiKey =>
+      dotenv.env['RESEND_API_KEY'] ?? '';
 
   // ── Token Storage Keys ───────────────────────
   static const String kAccessToken  = 'access_token';

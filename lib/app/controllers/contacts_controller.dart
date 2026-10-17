@@ -1,6 +1,7 @@
 // ─────────────────────────────────────────────
 //  contacts_controller.dart
-//  CRUD for the Safety Circle trusted contacts.
+//  CRUD for the Safety Circle trusted contacts
+//  (Name, Phone, Email & Relationship dropdown).
 // ─────────────────────────────────────────────
 import 'package:get/get.dart';
 import 'package:dio/dio.dart';
@@ -19,7 +20,19 @@ class ContactsController extends GetxController {
   // Add-contact form fields
   final RxString nameInput     = ''.obs;
   final RxString phoneInput    = ''.obs;
+  final RxString emailInput    = ''.obs;
   final RxString relationInput = 'Family'.obs;
+
+  static const List<String> availableRelationships = [
+    'Family',
+    'Friend',
+    'Parent',
+    'Sibling',
+    'Partner',
+    'Colleague',
+    'Neighbor',
+    'Other',
+  ];
 
   @override
   void onInit() {
@@ -33,7 +46,7 @@ class ContactsController extends GetxController {
     isLoading.value = true;
     try {
       final resp = await _service.getContacts();
-      final list  = resp.data as List? ?? [];
+      final list = resp.data as List? ?? [];
       contacts.value = list
           .map((e) => ContactModel.fromJson(e as Map<String, dynamic>))
           .toList();
@@ -47,22 +60,37 @@ class ContactsController extends GetxController {
   // ── Add ──────────────────────────────────────
 
   Future<void> addContact() async {
-    if (nameInput.isEmpty || phoneInput.isEmpty) {
-      Get.snackbar('Error', 'Name and phone are required');
+    final name = nameInput.value.trim();
+    final phone = phoneInput.value.trim();
+    final email = emailInput.value.trim();
+    final relation = relationInput.value.trim().isEmpty ? 'Family' : relationInput.value.trim();
+
+    if (name.isEmpty || phone.isEmpty) {
+      Get.snackbar('Validation Error', 'Name and phone number are required');
       return;
     }
+
+    if (email.isNotEmpty && !GetUtils.isEmail(email)) {
+      Get.snackbar('Invalid Email', 'Please enter a valid email address for SOS alerts');
+      return;
+    }
+
     isLoading.value = true;
     try {
       final resp = await _service.addContact(
-        name:     nameInput.value.trim(),
-        phone:    phoneInput.value.trim(),
-        relation: relationInput.value,
+        name: name,
+        phone: phone,
+        email: email.isNotEmpty ? email : null,
+        relation: relation,
       );
       final c = ContactModel.fromJson(resp.data as Map<String, dynamic>);
       contacts.add(c);
       _clearForm();
       Get.back(); // close add-contact bottom sheet
-      Get.snackbar('✅ Added', '${c.name} added to your Safety Circle');
+      Get.snackbar(
+        '✅ Contact Added',
+        '${c.name} added to your Safety Circle. SOS alerts will be sent to them.',
+      );
     } on DioException catch (e) {
       Get.snackbar('Error', e.message ?? 'Could not add contact');
     } finally {
@@ -85,6 +113,7 @@ class ContactsController extends GetxController {
   void _clearForm() {
     nameInput.value     = '';
     phoneInput.value    = '';
+    emailInput.value    = '';
     relationInput.value = 'Family';
   }
 }

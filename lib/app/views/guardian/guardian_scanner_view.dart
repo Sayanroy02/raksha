@@ -1,6 +1,6 @@
 // ─────────────────────────────────────────────
 //  guardian_scanner_view.dart
-//  Camera QR code scanner.
+//  Camera QR code scanner with manual ID/Email fallback.
 //  Scans another Raksha+ user's QR code to open
 //  the live Guardian Tracking & Audio screen.
 // ─────────────────────────────────────────────
@@ -44,9 +44,14 @@ class _GuardianScannerViewState extends State<GuardianScannerView> {
     final rawValue = barcodes.first.rawValue;
     if (rawValue == null || rawValue.isEmpty) return;
 
+    _navigateToTrack(rawValue);
+  }
+
+  void _navigateToTrack(String rawValue) {
+    if (_isProcessing) return;
     _isProcessing = true;
 
-    String targetId = rawValue;
+    String targetId = rawValue.trim();
     String targetName = 'Tracked User';
     String targetPhone = '';
 
@@ -54,6 +59,8 @@ class _GuardianScannerViewState extends State<GuardianScannerView> {
       final decoded = jsonDecode(rawValue) as Map<String, dynamic>;
       if (decoded['user_id'] != null) {
         targetId = decoded['user_id'].toString();
+      } else if (decoded['email'] != null) {
+        targetId = decoded['email'].toString();
       }
       if (decoded['name'] != null) {
         targetName = decoded['name'].toString();
@@ -62,12 +69,13 @@ class _GuardianScannerViewState extends State<GuardianScannerView> {
         targetPhone = decoded['phone'].toString();
       }
     } catch (_) {
-      // Raw string ID fallback
       targetId = rawValue.trim();
     }
 
-    // Stop camera and navigate to tracking screen
-    _scannerController.stop();
+    try {
+      _scannerController.stop();
+    } catch (_) {}
+
     Get.offNamed(
       AppRoutes.guardianTrack,
       arguments: {
@@ -75,6 +83,49 @@ class _GuardianScannerViewState extends State<GuardianScannerView> {
         'name': targetName,
         'phone': targetPhone,
       },
+    );
+  }
+
+  void _showManualEntryDialog() {
+    final textCtrl = TextEditingController();
+    Get.defaultDialog(
+      title: 'Enter Guardian ID / Email',
+      titleStyle: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+      backgroundColor: AppColors.cardBg,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      content: Column(
+        children: [
+          Text(
+            'Paste the Guardian User ID, Registered Email, or Phone number of the person you want to track.',
+            style: GoogleFonts.poppins(fontSize: 12, color: AppColors.textSecondary),
+          ),
+          const SizedBox(height: 14),
+          TextField(
+            controller: textCtrl,
+            style: const TextStyle(color: Colors.white),
+            decoration: InputDecoration(
+              hintText: 'Guardian ID or user email',
+              hintStyle: const TextStyle(color: AppColors.textHint),
+              prefixIcon: const Icon(Icons.badge_outlined, color: AppColors.primary),
+              filled: true,
+              fillColor: AppColors.scaffoldBg,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          ),
+        ],
+      ),
+      textConfirm: 'Start Tracking',
+      confirmTextColor: Colors.white,
+      buttonColor: AppColors.primary,
+      onConfirm: () {
+        final val = textCtrl.text.trim();
+        if (val.isNotEmpty) {
+          Get.back();
+          _navigateToTrack(val);
+        }
+      },
+      textCancel: 'Cancel',
+      cancelTextColor: AppColors.textHint,
     );
   }
 
@@ -87,10 +138,17 @@ class _GuardianScannerViewState extends State<GuardianScannerView> {
         title: const Text('Scan Guardian QR'),
         actions: [
           IconButton(
+            tooltip: 'Enter Manually',
+            icon: const Icon(Icons.edit_note_rounded, color: Colors.white),
+            onPressed: _showManualEntryDialog,
+          ),
+          IconButton(
+            tooltip: 'Torch',
             icon: const Icon(Icons.flash_on_rounded),
             onPressed: () => _scannerController.toggleTorch(),
           ),
           IconButton(
+            tooltip: 'Switch Camera',
             icon: const Icon(Icons.cameraswitch_rounded),
             onPressed: () => _scannerController.switchCamera(),
           ),
@@ -123,34 +181,48 @@ class _GuardianScannerViewState extends State<GuardianScannerView> {
             ),
           ),
 
-          // ── Instructional Guide ────────────────────
+          // ── Instructional Guide & Manual Button ────
           Positioned(
-            bottom: 40,
-            left: 24,
-            right: 24,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-              decoration: BoxDecoration(
-                color: AppColors.cardBg.withValues(alpha: 0.9),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.divider),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.qr_code_2_rounded, color: AppColors.primary, size: 28),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Text(
-                      'Align the Raksha+ Guardian QR code within the frame to start live tracking & audio monitoring.',
-                      style: GoogleFonts.poppins(
-                        fontSize: 12,
-                        color: Colors.white,
-                        height: 1.4,
-                      ),
-                    ),
+            bottom: 30,
+            left: 20,
+            right: 20,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: AppColors.cardBg.withValues(alpha: 0.92),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppColors.divider),
                   ),
-                ],
-              ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.qr_code_2_rounded, color: AppColors.primary, size: 26),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Align the Raksha+ Guardian QR code inside the frame.',
+                          style: GoogleFonts.poppins(
+                            fontSize: 12,
+                            color: Colors.white,
+                            height: 1.4,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TextButton.icon(
+                  onPressed: _showManualEntryDialog,
+                  icon: const Icon(Icons.keyboard_alt_outlined, color: AppColors.primary),
+                  label: Text(
+                    'Cannot scan? Enter Guardian ID manually',
+                    style: GoogleFonts.poppins(color: AppColors.primary, fontSize: 13, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
             ),
           ),
         ],

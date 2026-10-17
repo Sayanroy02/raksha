@@ -1,18 +1,18 @@
 // ─────────────────────────────────────────────
 //  live_location_view.dart
-//  Shows a Google Map with real-time GPS coordinates,
+//  Interactive visual map with real-time GPS coordinates,
 //  pinpoint marker, accuracy indicator, WhatsApp share,
-//  and SOS live sharing controls.
+//  and SOS live sharing controls powered by Geoapify & flutter_map.
 // ─────────────────────────────────────────────
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../controllers/location_controller.dart';
 import '../../controllers/sos_controller.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/bottom_nav_bar.dart';
+import '../../widgets/raksha_visual_map.dart';
 
 class LiveLocationView extends GetView<LocationController> {
   const LiveLocationView({super.key});
@@ -28,6 +28,11 @@ class LiveLocationView extends GetView<LocationController> {
         title: const Text('Live Location'),
         actions: [
           IconButton(
+            tooltip: 'Location History',
+            icon: const Icon(Icons.history_rounded, color: Colors.white),
+            onPressed: () => _showHistorySheet(context),
+          ),
+          IconButton(
             tooltip: 'Share on WhatsApp',
             icon: const Icon(Icons.share_rounded, color: Colors.greenAccent),
             onPressed: controller.shareLocationOnWhatsApp,
@@ -41,136 +46,26 @@ class LiveLocationView extends GetView<LocationController> {
       ),
       body: Stack(
         children: [
-          // ── 1. Google Map ──────────────────────────
+          // ── 1. Interactive Visual Map ─────────────
           Obx(() {
-            final pos = controller.currentPosition.value;
-            return GoogleMap(
-              onMapCreated: controller.onMapCreated,
-              initialCameraPosition: CameraPosition(
-                target: pos ?? const LatLng(26.7271, 88.3953),
-                zoom: 15.5,
-              ),
-              markers: controller.markers.toSet(),
-              polylines: {
-                if (controller.polyline.isNotEmpty)
-                  Polyline(
-                    polylineId: const PolylineId('trail'),
-                    points: controller.polyline.toList(),
-                    color: AppColors.primary,
-                    width: 4,
-                  ),
-              },
-              myLocationEnabled: true,
-              myLocationButtonEnabled: false,
-              zoomControlsEnabled: false,
-              mapToolbarEnabled: false,
+            final point = controller.currentPoint.value;
+            final isSos = sos.isActive.value;
+            final addr = controller.formattedAddress.value;
+            final acc = controller.currentAccuracy.value;
+
+            return RakshaVisualMap(
+              center: point,
+              zoom: 16.5,
+              showUserPulse: true,
+              isEmergency: isSos,
+              addressText: addr,
+              accuracyMeters: acc,
+              polylinePoints: controller.polyline.toList(),
+              onRecenter: controller.recenterCamera,
             );
           }),
 
-          // ── 2. Top Coordinates Status Banner ──────
-          Positioned(
-            top: 16,
-            left: 16,
-            right: 16,
-            child: Obx(() {
-              final pos = controller.currentPosition.value;
-              final acc = controller.currentAccuracy.value;
-              final isLocating = controller.isLocating.value;
-
-              return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                decoration: BoxDecoration(
-                  color: AppColors.cardBg.withValues(alpha: 0.92),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.divider),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Colors.black45,
-                      blurRadius: 10,
-                      offset: Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 10,
-                      height: 10,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: isLocating ? Colors.orangeAccent : AppColors.liveGreen,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            pos != null
-                                ? '${pos.latitude.toStringAsFixed(5)}° N, ${pos.longitude.toStringAsFixed(5)}° E'
-                                : 'Acquiring GPS Satellite Fix...',
-                            style: GoogleFonts.poppins(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white,
-                            ),
-                          ),
-                          Text(
-                            pos != null
-                                ? 'GPS Accuracy: ±${acc.toInt()}m · High Precision'
-                                : 'Please ensure you are under open sky with GPS on',
-                            style: GoogleFonts.poppins(
-                              fontSize: 11,
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    if (isLocating)
-                      const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                  ],
-                ),
-              );
-            }),
-          ),
-
-          // ── 3. Floating Quick Action Buttons ───────
-          Positioned(
-            right: 16,
-            bottom: 230,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                FloatingActionButton.small(
-                  heroTag: 'whatsapp_btn',
-                  backgroundColor: const Color(0xFF25D366),
-                  onPressed: controller.shareLocationOnWhatsApp,
-                  tooltip: 'Share Live on WhatsApp',
-                  child: const Icon(Icons.chat_bubble, color: Colors.white),
-                ),
-                const SizedBox(height: 10),
-                FloatingActionButton.small(
-                  heroTag: 'recenter_btn',
-                  backgroundColor: AppColors.cardBg,
-                  onPressed: controller.recenterCamera,
-                  tooltip: 'Recenter on My Location',
-                  child: const Icon(Icons.my_location, color: AppColors.primary),
-                ),
-              ],
-            ),
-          ),
-
-          // ── 4. Bottom Information & Sharing Card ───
+          // ── 2. Bottom Information & Sharing Card ───
           Positioned(
             left: 0,
             right: 0,
@@ -179,6 +74,131 @@ class LiveLocationView extends GetView<LocationController> {
           ),
         ],
       ),
+    );
+  }
+
+  void _showHistorySheet(BuildContext context) {
+    Get.bottomSheet(
+      Container(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+        decoration: const BoxDecoration(
+          color: AppColors.cardBg,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          border: Border(top: BorderSide(color: AppColors.divider)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2)),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.timeline_rounded, color: AppColors.primary),
+                    const SizedBox(width: 10),
+                    Text(
+                      'Location Movement History',
+                      style: GoogleFonts.poppins(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+                Obx(() => controller.locationHistory.isNotEmpty
+                    ? TextButton(
+                        onPressed: controller.clearHistory,
+                        child: const Text('Clear', style: TextStyle(color: Colors.redAccent, fontSize: 12)),
+                      )
+                    : const SizedBox.shrink()),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Obx(() => Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: controller.isUserMoving.value
+                        ? Colors.blueAccent.withValues(alpha: 0.15)
+                        : Colors.greenAccent.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    'Status: ${controller.movementStatus.value}',
+                    style: TextStyle(
+                      color: controller.isUserMoving.value ? Colors.blueAccent : Colors.greenAccent,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                )),
+            const SizedBox(height: 16),
+            Obx(() {
+              if (controller.locationHistory.isEmpty) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 24),
+                  child: Center(
+                    child: Column(
+                      children: [
+                        const Icon(Icons.place_outlined, color: AppColors.textHint, size: 40),
+                        const SizedBox(height: 10),
+                        Text(
+                          'You are at a static location.\nAs you move, each new location checkpoint will be recorded here automatically.',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.poppins(color: AppColors.textSecondary, fontSize: 13, height: 1.5),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }
+
+              return ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 320),
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: controller.locationHistory.length,
+                  separatorBuilder: (_, __) => const Divider(color: AppColors.divider),
+                  itemBuilder: (_, i) {
+                    final item = controller.locationHistory[i];
+                    return ListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      leading: CircleAvatar(
+                        radius: 16,
+                        backgroundColor: i == 0
+                            ? AppColors.primary.withValues(alpha: 0.25)
+                            : Colors.white10,
+                        child: Icon(
+                          i == 0 ? Icons.my_location : Icons.location_on_outlined,
+                          size: 16,
+                          color: i == 0 ? AppColors.primary : AppColors.textSecondary,
+                        ),
+                      ),
+                      title: Text(
+                        item.address,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(color: Colors.white, fontSize: 13),
+                      ),
+                      subtitle: Text(
+                        '${item.timestamp.toLocal().toString().split('.')[0]} • (${item.latitude.toStringAsFixed(4)}, ${item.longitude.toStringAsFixed(4)})',
+                        style: const TextStyle(color: AppColors.textHint, fontSize: 11),
+                      ),
+                    );
+                  },
+                ),
+              );
+            }),
+          ],
+        ),
+      ),
+      isScrollControlled: true,
     );
   }
 }
@@ -191,11 +211,14 @@ class _LocationInfoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
       decoration: const BoxDecoration(
         color: AppColors.cardBg,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         border: Border(top: BorderSide(color: AppColors.divider)),
+        boxShadow: [
+          BoxShadow(color: Colors.black54, blurRadius: 15, offset: Offset(0, -3)),
+        ],
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -216,7 +239,7 @@ class _LocationInfoCard extends StatelessWidget {
                   Text(
                     sos.isActive.value
                         ? 'EMERGENCY SOS ACTIVE · ${sos.elapsedTime.value}'
-                        : 'Real-time GPS Active',
+                        : 'Real-time GPS Active (Geoapify Powered)',
                     style: GoogleFonts.poppins(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
@@ -227,35 +250,70 @@ class _LocationInfoCard extends StatelessWidget {
               )),
 
           const SizedBox(height: 6),
-          Text(
-            'Your coordinates update continuously for maximum safety.',
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-
-          const SizedBox(height: 16),
-
-          // WhatsApp Share Button
-          SizedBox(
-            width: double.infinity,
-            height: 48,
-            child: ElevatedButton.icon(
-              onPressed: locationCtrl.shareLocationOnWhatsApp,
-              icon: const Icon(Icons.chat_outlined, color: Colors.white, size: 20),
-              label: Text(
-                'Share Live Location on WhatsApp',
+          Obx(() => Text(
+                locationCtrl.formattedAddress.value,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
                 style: GoogleFonts.poppins(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,
-                  color: Colors.white,
+                  fontSize: 12,
+                  color: AppColors.textSecondary,
+                ),
+              )),
+
+          const SizedBox(height: 14),
+
+          // Action Buttons: WhatsApp Share & Quick SOS Email
+          Row(
+            children: [
+              Expanded(
+                child: SizedBox(
+                  height: 48,
+                  child: ElevatedButton.icon(
+                    onPressed: locationCtrl.shareLocationOnWhatsApp,
+                    icon: const Icon(Icons.chat_outlined, color: Colors.white, size: 18),
+                    label: Text(
+                      'WhatsApp',
+                      style: GoogleFonts.poppins(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                        color: Colors.white,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF25D366),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                  ),
                 ),
               ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF25D366),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
+              const SizedBox(width: 10),
+              Expanded(
+                child: SizedBox(
+                  height: 48,
+                  child: ElevatedButton.icon(
+                    onPressed: () => _showEmailDialog(context),
+                    icon: const Icon(Icons.mail_outline_rounded, color: Colors.white, size: 18),
+                    label: Text(
+                      'Email Alert',
+                      style: GoogleFonts.poppins(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                        color: Colors.white,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                  ),
                 ),
               ),
-            ),
+            ],
           ),
 
           const SizedBox(height: 10),
@@ -284,6 +342,48 @@ class _LocationInfoCard extends StatelessWidget {
           }),
         ],
       ),
+    );
+  }
+
+  void _showEmailDialog(BuildContext context) {
+    final emailTextCtrl = TextEditingController();
+    Get.defaultDialog(
+      title: 'Send Location Email Alert',
+      titleStyle: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white),
+      backgroundColor: AppColors.cardBg,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      content: Column(
+        children: [
+          Text(
+            'Deliver live GPS coordinates, interactive map link, and formatted address via Resend.',
+            style: GoogleFonts.poppins(fontSize: 12, color: AppColors.textSecondary),
+          ),
+          const SizedBox(height: 14),
+          TextField(
+            controller: emailTextCtrl,
+            keyboardType: TextInputType.emailAddress,
+            style: const TextStyle(color: Colors.white),
+            decoration: InputDecoration(
+              hintText: 'Recipient email address',
+              hintStyle: const TextStyle(color: AppColors.textHint),
+              prefixIcon: const Icon(Icons.email_outlined, color: AppColors.primary),
+              filled: true,
+              fillColor: AppColors.scaffoldBg,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          ),
+        ],
+      ),
+      textConfirm: 'Send via Resend',
+      confirmTextColor: Colors.white,
+      buttonColor: AppColors.primary,
+      onConfirm: () {
+        final email = emailTextCtrl.text.trim();
+        Get.back();
+        sos.sendCustomEmailAlert(email);
+      },
+      textCancel: 'Cancel',
+      cancelTextColor: AppColors.textHint,
     );
   }
 }

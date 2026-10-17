@@ -45,6 +45,12 @@ class AuthService {
     return _api.dio.get('/auth/me');
   }
 
+  /// Update the current user's profile and personal info
+  /// PATCH /auth/me
+  Future<Response> updateProfile(Map<String, dynamic> data) {
+    return _api.dio.patch('/auth/me', data: data);
+  }
+
   /// Refresh access token using refresh token
   /// POST /auth/refresh  (Authorization: Bearer `<refresh_token>`)
   Future<Response> refresh(String refreshToken) {

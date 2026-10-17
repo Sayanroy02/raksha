@@ -18,6 +18,8 @@ abstract class AppRoutes {
   static const locationHistory = '/location-history';
   static const safetyAssistant = '/safety-assistant';
   static const profile         = '/profile';
+  static const personalInfo    = '/personal-info';
+  static const notifications   = '/notifications';
   static const guardianQr      = '/guardian-qr';
   static const guardianScanner = '/guardian-scanner';
   static const guardianTrack   = '/guardian-track';

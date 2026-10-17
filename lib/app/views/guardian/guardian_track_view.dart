@@ -1,7 +1,8 @@
 // ─────────────────────────────────────────────
 //  guardian_track_view.dart
 //  Guardian Live Tracking & Audio Monitor Screen.
-//  Displays the tracked user's real-time position,
+//  Displays the tracked user's real-time position using
+//  RakshaVisualMap (flutter_map & Geoapify tiles),
 //  emergency status, and an interactive audio player
 //  to listen to live/emergency audio from their phone.
 // ─────────────────────────────────────────────
@@ -10,12 +11,14 @@ import 'dart:async';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:latlong2/latlong.dart' as ll;
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../services/sos_service.dart';
+import '../../services/geoapify_service.dart';
 import '../../theme/app_colors.dart';
+import '../../widgets/raksha_visual_map.dart';
 
 class GuardianTrackView extends StatefulWidget {
   const GuardianTrackView({super.key});
@@ -26,9 +29,9 @@ class GuardianTrackView extends StatefulWidget {
 
 class _GuardianTrackViewState extends State<GuardianTrackView> {
   final SosService _sosService = Get.find<SosService>();
+  final GeoapifyService _geoapify = GeoapifyService();
   final AudioPlayer _audioPlayer = AudioPlayer();
 
-  GoogleMapController? _mapController;
   Timer? _pollingTimer;
 
   String _targetId = '';
@@ -37,9 +40,9 @@ class _GuardianTrackViewState extends State<GuardianTrackView> {
   bool _isLoading = true;
   bool _isEmergency = false;
   String _statusText = 'Active';
+  String _formattedAddress = 'Detecting location address...';
 
-  LatLng _currentLocation = const LatLng(26.7271, 88.3953);
-  final Set<Marker> _markers = {};
+  ll.LatLng _currentLocation = const ll.LatLng(26.7271, 88.3953);
   String? _audioUrl;
 
   bool _isPlayingAudio = false;
@@ -82,7 +85,6 @@ class _GuardianTrackViewState extends State<GuardianTrackView> {
   void dispose() {
     _pollingTimer?.cancel();
     _audioPlayer.dispose();
-    _mapController?.dispose();
     super.dispose();
   }
 
@@ -97,6 +99,8 @@ class _GuardianTrackViewState extends State<GuardianTrackView> {
       final lat = (loc?['lat'] as num?)?.toDouble() ?? _currentLocation.latitude;
       final lng = (loc?['lng'] as num?)?.toDouble() ?? _currentLocation.longitude;
 
+      final newPoint = ll.LatLng(lat, lng);
+
       if (mounted) {
         setState(() {
           _userName = data['name'] ?? _userName;
@@ -104,26 +108,15 @@ class _GuardianTrackViewState extends State<GuardianTrackView> {
           _isEmergency = data['is_emergency'] ?? false;
           _statusText = data['status'] ?? 'Active';
           _audioUrl = data['latest_audio_url'];
-          _currentLocation = LatLng(lat, lng);
+          _currentLocation = newPoint;
           _isLoading = false;
-
-          _markers.clear();
-          _markers.add(
-            Marker(
-              markerId: const MarkerId('tracked_user'),
-              position: _currentLocation,
-              icon: BitmapDescriptor.defaultMarkerWithHue(
-                _isEmergency ? BitmapDescriptor.hueRed : BitmapDescriptor.hueRose,
-              ),
-              infoWindow: InfoWindow(
-                title: _userName,
-                snippet: _isEmergency ? '🚨 SOS EMERGENCY ACTIVE!' : 'Location Active',
-              ),
-            ),
-          );
         });
 
-        _mapController?.animateCamera(CameraUpdate.newLatLng(_currentLocation));
+        _geoapify.reverseGeocode(lat, lng).then((addr) {
+          if (mounted) {
+            setState(() => _formattedAddress = addr.formatted);
+          }
+        }).catchError((_) {});
       }
     } catch (_) {
       if (mounted) {
@@ -171,6 +164,7 @@ class _GuardianTrackViewState extends State<GuardianTrackView> {
         title: Text('Tracking: $_userName'),
         actions: [
           IconButton(
+            tooltip: 'Refresh',
             icon: const Icon(Icons.refresh_rounded),
             onPressed: _fetchTrackData,
           ),
@@ -180,27 +174,21 @@ class _GuardianTrackViewState extends State<GuardianTrackView> {
           ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
           : Stack(
               children: [
-                // ── Google Map ───────────────────────
-                GoogleMap(
-                  onMapCreated: (c) {
-                    _mapController = c;
-                    c.animateCamera(CameraUpdate.newLatLngZoom(_currentLocation, 16));
-                  },
-                  initialCameraPosition: CameraPosition(
-                    target: _currentLocation,
-                    zoom: 16,
-                  ),
-                  markers: _markers,
-                  myLocationEnabled: true,
-                  myLocationButtonEnabled: false,
-                  zoomControlsEnabled: false,
+                // ── 1. Interactive Visual Map (No White Screen) ──
+                RakshaVisualMap(
+                  center: _currentLocation,
+                  zoom: 16.5,
+                  showUserPulse: true,
+                  isEmergency: _isEmergency,
+                  addressText: _formattedAddress,
+                  onRecenter: _fetchTrackData,
                 ),
 
-                // ── Top Status Banner ────────────────
+                // ── 2. Top Emergency / Safe Status Banner ──
                 Positioned(
-                  top: 16,
-                  left: 16,
-                  right: 16,
+                  top: 14,
+                  left: 14,
+                  right: 14,
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     decoration: BoxDecoration(
@@ -230,7 +218,7 @@ class _GuardianTrackViewState extends State<GuardianTrackView> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Text(
-                                _isEmergency ? '⚠️ EMERGENCY SOS ACTIVE!' : 'Tracking Live Location',
+                                _isEmergency ? '⚠️ EMERGENCY SOS ACTIVE!' : 'Guardian Live Tracking',
                                 style: GoogleFonts.poppins(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 14,
@@ -238,7 +226,9 @@ class _GuardianTrackViewState extends State<GuardianTrackView> {
                                 ),
                               ),
                               Text(
-                                'GPS: ${_currentLocation.latitude.toStringAsFixed(5)}, ${_currentLocation.longitude.toStringAsFixed(5)}',
+                                _formattedAddress,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                                 style: GoogleFonts.poppins(
                                   fontSize: 11,
                                   color: Colors.white70,
@@ -248,17 +238,17 @@ class _GuardianTrackViewState extends State<GuardianTrackView> {
                           ),
                         ),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(
-                            color: Colors.black38,
-                            borderRadius: BorderRadius.circular(8),
+                            color: _isEmergency ? Colors.red : AppColors.liveGreen.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
-                            _statusText.toUpperCase(),
+                            _isEmergency ? 'CRITICAL' : _statusText.toUpperCase(),
                             style: GoogleFonts.poppins(
-                              fontSize: 10,
+                              fontSize: 11,
                               fontWeight: FontWeight.bold,
-                              color: _isEmergency ? Colors.redAccent : AppColors.liveGreen,
+                              color: Colors.white,
                             ),
                           ),
                         ),
@@ -267,116 +257,104 @@ class _GuardianTrackViewState extends State<GuardianTrackView> {
                   ),
                 ),
 
-                // ── Bottom Controls: Audio & Actions ──
+                // ── 3. Bottom Action Controls & Audio Monitor ──
                 Positioned(
                   left: 0,
                   right: 0,
                   bottom: 0,
                   child: Container(
-                    padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
                     decoration: const BoxDecoration(
                       color: AppColors.cardBg,
                       borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
                       border: Border(top: BorderSide(color: AppColors.divider)),
+                      boxShadow: [
+                        BoxShadow(color: Colors.black54, blurRadius: 15, offset: Offset(0, -3)),
+                      ],
                     ),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        // ── Audio Monitor Box ────────
+                        // Live Audio Stream Monitor
                         Container(
-                          padding: const EdgeInsets.all(14),
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                           decoration: BoxDecoration(
-                            color: AppColors.inputBg,
-                            borderRadius: BorderRadius.circular(16),
+                            color: AppColors.scaffoldBg,
+                            borderRadius: BorderRadius.circular(14),
                             border: Border.all(
                               color: _isPlayingAudio ? AppColors.primary : AppColors.divider,
                             ),
                           ),
                           child: Row(
                             children: [
-                              Container(
-                                width: 44,
-                                height: 44,
-                                decoration: BoxDecoration(
-                                  color: AppColors.primary.withValues(alpha: 0.15),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: IconButton(
-                                  onPressed: _isLoadingAudio ? null : _toggleAudio,
-                                  icon: _isLoadingAudio
-                                      ? const SizedBox(
-                                          width: 20,
-                                          height: 20,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                            color: AppColors.primary,
-                                          ),
-                                        )
-                                      : Icon(
-                                          _isPlayingAudio ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                                          color: AppColors.primary,
-                                          size: 26,
-                                        ),
-                                ),
+                              Icon(
+                                _isPlayingAudio ? Icons.graphic_eq_rounded : Icons.mic_rounded,
+                                color: _isPlayingAudio ? AppColors.primary : AppColors.textSecondary,
+                                size: 24,
                               ),
-                              const SizedBox(width: 14),
+                              const SizedBox(width: 12),
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      _isPlayingAudio ? 'Listening to Phone Audio...' : 'Listen to Live Phone Audio',
+                                      _isPlayingAudio ? 'Streaming Emergency Audio...' : 'Live Microphone Feed',
                                       style: GoogleFonts.poppins(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w600,
                                         color: Colors.white,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
                                       ),
                                     ),
                                     Text(
-                                      _isPlayingAudio
-                                          ? 'Streaming ambient microphone audio'
-                                          : 'Tap play to listen to surroundings audio',
+                                      _audioUrl != null ? 'Audio evidence active' : 'Click listen to monitor ambient audio',
                                       style: GoogleFonts.poppins(
-                                        fontSize: 11,
                                         color: AppColors.textSecondary,
+                                        fontSize: 11,
                                       ),
                                     ),
                                   ],
                                 ),
                               ),
-                              Icon(
-                                Icons.graphic_eq_rounded,
-                                color: _isPlayingAudio ? AppColors.primary : AppColors.textHint,
-                                size: 28,
-                              ),
+                              _isLoadingAudio
+                                  ? const SizedBox(
+                                      width: 24,
+                                      height: 24,
+                                      child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+                                    )
+                                  : ElevatedButton(
+                                      onPressed: _toggleAudio,
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: _isPlayingAudio ? Colors.redAccent : AppColors.primary,
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                      ),
+                                      child: Text(
+                                        _isPlayingAudio ? 'Stop' : 'Listen',
+                                        style: GoogleFonts.poppins(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                                      ),
+                                    ),
                             ],
                           ),
                         ),
 
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 14),
 
-                        // ── Quick Action Call Buttons ──
+                        // Action Buttons: Call User & Call 112
                         Row(
                           children: [
                             Expanded(
                               child: SizedBox(
-                                height: 48,
+                                height: 46,
                                 child: OutlinedButton.icon(
                                   onPressed: _callUser,
-                                  icon: const Icon(Icons.call, color: Colors.white, size: 18),
+                                  icon: const Icon(Icons.phone_in_talk_rounded, color: Colors.white, size: 18),
                                   label: Text(
-                                    'Call User',
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.white,
-                                    ),
+                                    'Call $_userName',
+                                    style: GoogleFonts.poppins(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
                                   ),
                                   style: OutlinedButton.styleFrom(
                                     side: const BorderSide(color: AppColors.divider),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(14),
-                                    ),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                   ),
                                 ),
                               ),
@@ -384,23 +362,17 @@ class _GuardianTrackViewState extends State<GuardianTrackView> {
                             const SizedBox(width: 12),
                             Expanded(
                               child: SizedBox(
-                                height: 48,
+                                height: 46,
                                 child: ElevatedButton.icon(
                                   onPressed: _callEmergency,
                                   icon: const Icon(Icons.emergency_rounded, color: Colors.white, size: 18),
                                   label: Text(
-                                    'Call 112 (Police)',
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.white,
-                                    ),
+                                    'Call Police (112)',
+                                    style: GoogleFonts.poppins(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
                                   ),
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.redAccent,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(14),
-                                    ),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                   ),
                                 ),
                               ),

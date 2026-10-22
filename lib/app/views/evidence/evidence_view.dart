@@ -441,7 +441,7 @@ class _EvidenceViewState extends State<EvidenceView> {
             ),
             const SizedBox(height: 4),
             Text(
-              '${item.timestamp.toLocal().toString().split('.')[0]} • ${sizeKb} KB',
+              '${item.timestamp.toLocal().toString().split('.')[0]} • $sizeKb KB',
               style: GoogleFonts.poppins(color: AppColors.textSecondary, fontSize: 12),
             ),
             const SizedBox(height: 24),

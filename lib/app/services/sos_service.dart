@@ -73,6 +73,25 @@ class SosService {
     });
   }
 
+  /// Upload real ambient audio file recorded during SOS incident
+  /// POST /sos/{incident_id}/upload-audio
+  Future<Response> uploadAudioFile({
+    required String incidentId,
+    required String filePath,
+  }) async {
+    final formData = FormData.fromMap({
+      'file': await MultipartFile.fromFile(
+        filePath,
+        filename: 'sos_audio_${DateTime.now().millisecondsSinceEpoch}.m4a',
+      ),
+    });
+
+    return _api.dio.post(
+      '/sos/$incidentId/upload-audio',
+      data: formData,
+    );
+  }
+
   /// Manually or automatically dispatch emergency live location email via Resend
   /// POST /sos/{incident_id}/send-email
   Future<Response> sendEmailAlert(String incidentId, {String? email}) {

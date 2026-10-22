@@ -16,6 +16,7 @@ import 'package:get/get.dart';
 import 'app/routes/app_pages.dart';
 import 'app/routes/app_routes.dart';
 import 'app/services/app_lock_service.dart';
+import 'app/services/fake_shutdown_service.dart';
 import 'app/theme/app_theme.dart';
 import 'app/utils/constants.dart';
 
@@ -29,8 +30,9 @@ void main() async {
     // If .env file not bundled, fallback to defaults in AppConstants
   }
 
-  // Initialize App Lock Service
+  // Initialize App Lock Service & Fake Shutdown Service
   await AppLockService().init();
+  await FakeShutdownService().init();
 
   // Lock orientation to portrait for mobile — keeps UI consistent
   await SystemChrome.setPreferredOrientations([

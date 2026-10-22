@@ -4,8 +4,10 @@
 // ─────────────────────────────────────────────
 
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../services/alert_notification_service.dart';
 import '../../theme/app_colors.dart';
 
 class NotificationsView extends StatefulWidget {
@@ -114,50 +116,57 @@ class _NotificationsViewState extends State<NotificationsView> {
           ),
           const SizedBox(height: 12),
 
-          ..._alerts.map((a) {
-            return Container(
-              margin: const EdgeInsets.only(bottom: 10),
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: AppColors.cardBg,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: AppColors.divider),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: (a['color'] as Color).withValues(alpha: 0.15),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(a['icon'] as IconData, color: a['color'] as Color, size: 20),
+          Obx(() {
+            final liveAlerts = AlertNotificationService().notificationsHistory;
+            final allAlerts = [...liveAlerts, ..._alerts];
+
+            return Column(
+              children: allAlerts.map((a) {
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: AppColors.cardBg,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: AppColors.divider),
                   ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          a['title'] as String,
-                          style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: (a['color'] as Color).withValues(alpha: 0.15),
+                          shape: BoxShape.circle,
                         ),
-                        const SizedBox(height: 2),
-                        Text(
-                          a['detail'] as String,
-                          style: GoogleFonts.poppins(color: AppColors.textSecondary, fontSize: 12),
+                        child: Icon(a['icon'] as IconData, color: a['color'] as Color, size: 20),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              a['title'] as String,
+                              style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              a['detail'] as String,
+                              style: GoogleFonts.poppins(color: AppColors.textSecondary, fontSize: 12),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              a['time'] as String,
+                              style: GoogleFonts.poppins(color: AppColors.textHint, fontSize: 10),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          a['time'] as String,
-                          style: GoogleFonts.poppins(color: AppColors.textHint, fontSize: 10),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                );
+              }).toList(),
             );
           }),
         ],

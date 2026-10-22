@@ -13,6 +13,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../models/location_log_model.dart';
 import '../services/geoapify_service.dart';
+import '../services/alert_notification_service.dart';
 
 class LocationController extends GetxController {
   final GeoapifyService _geoapify = GeoapifyService();
@@ -105,6 +106,9 @@ class LocationController extends GetxController {
     currentPoint.value = point;
     currentAccuracy.value = pos.accuracy;
     lastUpdatedTime.value = 'Just now';
+
+    // Proximity check against active danger zones and road lines
+    AlertNotificationService().checkProximityToDangerZones(pos.latitude, pos.longitude);
 
     // Add to breadcrumb path if moved
     if (polyline.isEmpty || polyline.last != point) {

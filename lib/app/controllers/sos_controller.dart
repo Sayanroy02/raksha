@@ -12,6 +12,8 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../services/sos_service.dart';
 import '../services/geoapify_service.dart';
+import '../services/audio_capture_service.dart';
+import '../services/alert_notification_service.dart';
 import '../utils/constants.dart';
 
 class SosController extends GetxController {
@@ -115,20 +117,18 @@ class SosController extends GetxController {
       if (incId.isNotEmpty) {
         _sosService.sendEmailAlert(incId).ignore();
 
-        // Attach emergency audio siren stream link
-        _sosService.attachAudio(
+        // Capture real ambient microphone audio during SOS emergency
+        AudioCaptureService().startEmergencyRecording(
           incidentId: incId,
-          audioUrl: 'https://actions.google.com/sounds/v1/emergency/siren_emergency_truck.ogg',
-          durationSeconds: 15.0,
+          sosService: _sosService,
         ).ignore();
-      }
 
-      Get.snackbar(
-        '🆘 SOS Live & Alert Sent',
-        'Emergency live GPS broadcasted. Email & notifications dispatched to your trusted circle.',
-        duration: const Duration(seconds: 5),
-        snackPosition: SnackPosition.TOP,
-      );
+        // High priority emergency push notification
+        AlertNotificationService().dispatchEmergencyAlert(
+          title: 'SOS Emergency Alert Live',
+          message: 'Real-time GPS broadcasted. Email & notifications dispatched to your safety circle.',
+        );
+      }
     } catch (e) {
       Get.snackbar(
         'SOS Notice',
@@ -204,6 +204,11 @@ class SosController extends GetxController {
     isLoading.value = true;
     try {
       if (activeIncidentId.value.isNotEmpty) {
+        // Finalize and upload any ongoing audio recording
+        await AudioCaptureService().stopAndUploadRecording(
+          incidentId: activeIncidentId.value,
+          sosService: _sosService,
+        );
         await _sosService.stopSos(activeIncidentId.value);
       }
       isActive.value         = false;

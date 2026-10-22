@@ -50,6 +50,12 @@ class ApiService {
         onError: (DioException error, handler) async {
           // If 401 Unauthorized, try refreshing the access token once
           if (error.response?.statusCode == 401) {
+            final path = error.requestOptions.path;
+            if (path.contains('/auth/login') || path.contains('/auth/register') || path.contains('/auth/refresh')) {
+              handler.next(error);
+              return;
+            }
+
             final refreshed = await _tryRefreshToken();
             if (refreshed) {
               // Retry original request with new token
@@ -62,9 +68,13 @@ class ApiService {
                 return handler.resolve(retryResp);
               } catch (_) {}
             }
-            // Refresh failed — force logout
-            await Get.find<StorageService>().clearAll();
-            Get.offAllNamed(AppRoutes.login);
+            // Only clear storage and redirect if refresh was truly rejected
+            final storage = Get.find<StorageService>();
+            final refresh = await storage.getRefreshToken();
+            if (refresh == null || refresh.isEmpty) {
+              await storage.clearAll();
+              Get.offAllNamed(AppRoutes.login);
+            }
           }
           handler.next(error);
         },
@@ -90,14 +100,22 @@ class ApiService {
     try {
       final storage = Get.find<StorageService>();
       final refresh = await storage.getRefreshToken();
-      if (refresh == null) return false;
+      if (refresh == null || refresh.isEmpty) return false;
 
       final resp = await Dio().post(
         '${AppConstants.apiBaseUrl}/auth/refresh',
-        options: Options(headers: {'Authorization': 'Bearer $refresh'}),
+        data: {'refresh_token': refresh},
+        options: Options(headers: {'Content-Type': 'application/json'}),
       );
-      await storage.saveAccessToken(resp.data['access_token']);
-      return true;
+
+      if (resp.data != null && resp.data['access_token'] != null) {
+        await storage.saveAccessToken(resp.data['access_token']);
+        if (resp.data['refresh_token'] != null) {
+          await storage.saveRefreshToken(resp.data['refresh_token']);
+        }
+        return true;
+      }
+      return false;
     } catch (_) {
       return false;
     }

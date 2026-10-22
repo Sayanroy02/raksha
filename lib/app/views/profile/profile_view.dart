@@ -11,6 +11,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../controllers/profile_controller.dart';
 import '../../routes/app_routes.dart';
 import '../../services/app_lock_service.dart';
+import '../../services/fake_shutdown_service.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/bottom_nav_bar.dart';
 
@@ -24,6 +25,7 @@ class ProfileView extends GetView<ProfileController> {
     final settingsItems = [
       _SettingsItem(Icons.person_outline_rounded,   'Personal Information',   AppRoutes.personalInfo),
       _SettingsItem(Icons.lock_outline_rounded,      'App Lock & PIN Security', null),
+      _SettingsItem(Icons.power_settings_new_rounded, 'Anti-Theft Fake Switch-Off', null),
       _SettingsItem(Icons.qr_code_2_rounded,         'My Guardian QR Code',    AppRoutes.guardianQr),
       _SettingsItem(Icons.qr_code_scanner_rounded,   'Scan Guardian QR',       AppRoutes.guardianScanner),
       _SettingsItem(Icons.shield_outlined,           'Safety Circle',          AppRoutes.safetyCircle),
@@ -170,6 +172,67 @@ class ProfileView extends GetView<ProfileController> {
                               } else {
                                 AppLockService().showSetPinDialog(context);
                               }
+                            } else if (item.label == 'Anti-Theft Fake Switch-Off') {
+                              final fakeShutdown = FakeShutdownService();
+                              Get.defaultDialog(
+                                title: 'Fake Switch-Off Defense',
+                                titleStyle: GoogleFonts.poppins(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 17),
+                                backgroundColor: AppColors.cardBg,
+                                content: StatefulBuilder(
+                                  builder: (ctx, setLocalState) {
+                                    return Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.all(12),
+                                          decoration: BoxDecoration(
+                                            color: AppColors.primary.withValues(alpha: 0.15),
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: const Icon(Icons.power_settings_new_rounded, color: AppColors.primary, size: 30),
+                                        ),
+                                        const SizedBox(height: 12),
+                                        Text(
+                                          'Prevents attackers from switching off your phone. Simulates a realistic power-down screen, turns the display pitch black, and silently broadcasts live GPS coordinates and audio.',
+                                          textAlign: TextAlign.center,
+                                          style: GoogleFonts.poppins(color: AppColors.textSecondary, fontSize: 12),
+                                        ),
+                                        const SizedBox(height: 16),
+                                        SwitchListTile(
+                                          title: Text(
+                                            'Protection Active',
+                                            style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14),
+                                          ),
+                                          value: fakeShutdown.isEnabled,
+                                          activeColor: AppColors.primary,
+                                          onChanged: (val) async {
+                                            await fakeShutdown.setEnabled(val);
+                                            setLocalState(() {});
+                                          },
+                                        ),
+                                        const SizedBox(height: 10),
+                                        ElevatedButton.icon(
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: AppColors.primary,
+                                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                          ),
+                                          icon: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 20),
+                                          label: Text(
+                                            'Test Fake Switch-Off Now',
+                                            style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13),
+                                          ),
+                                          onPressed: () {
+                                            Get.back();
+                                            fakeShutdown.launchFakeShutdown(context);
+                                          },
+                                        ),
+                                      ],
+                                    );
+                                  },
+                                ),
+                                textCancel: 'Close',
+                              );
                             } else if (item.label == 'Help & Support') {
                               Get.defaultDialog(
                                 title: 'Emergency Support',

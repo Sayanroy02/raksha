@@ -23,4 +23,5 @@ abstract class AppRoutes {
   static const guardianQr      = '/guardian-qr';
   static const guardianScanner = '/guardian-scanner';
   static const guardianTrack   = '/guardian-track';
+  static const fakeShutdown    = '/fake-shutdown';
 }

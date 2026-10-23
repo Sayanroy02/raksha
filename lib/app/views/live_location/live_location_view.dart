@@ -61,6 +61,7 @@ class LiveLocationView extends GetView<LocationController> {
               addressText: addr,
               accuracyMeters: acc,
               polylinePoints: controller.polyline.toList(),
+              dangerZones: controller.dangerZones.toList(),
               onRecenter: controller.recenterCamera,
             );
           }),
@@ -261,7 +262,50 @@ class _LocationInfoCard extends StatelessWidget {
                 ),
               )),
 
-          const SizedBox(height: 14),
+          // Nearest Emergency Services directly in Google Maps
+          Row(
+            children: [
+              Expanded(
+                child: SizedBox(
+                  height: 42,
+                  child: OutlinedButton.icon(
+                    onPressed: () => sos.openNearestInGoogleMaps('police'),
+                    icon: const Icon(Icons.local_police_rounded, color: Colors.blueAccent, size: 18),
+                    label: Text(
+                      'Nearest Police',
+                      style: GoogleFonts.poppins(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: Colors.blueAccent.withValues(alpha: 0.5)),
+                      backgroundColor: Colors.blueAccent.withValues(alpha: 0.1),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: SizedBox(
+                  height: 42,
+                  child: OutlinedButton.icon(
+                    onPressed: () => sos.openNearestInGoogleMaps('hospital'),
+                    icon: const Icon(Icons.local_hospital_rounded, color: Colors.redAccent, size: 18),
+                    label: Text(
+                      'Nearest Hospital',
+                      style: GoogleFonts.poppins(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: Colors.redAccent.withValues(alpha: 0.5)),
+                      backgroundColor: Colors.redAccent.withValues(alpha: 0.1),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 10),
 
           // Action Buttons: WhatsApp Share & Quick SOS Email
           Row(

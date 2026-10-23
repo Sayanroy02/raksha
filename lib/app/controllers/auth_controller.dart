@@ -143,6 +143,11 @@ class AuthController extends GetxController {
 
   /// Extracts a readable error message from a Dio exception
   String _parseError(DioException e) {
+    if (e.type == DioExceptionType.connectionTimeout ||
+        e.type == DioExceptionType.receiveTimeout ||
+        e.type == DioExceptionType.sendTimeout) {
+      return 'Cloud server is waking up from idle mode. Please tap Sign In once more now!';
+    }
     final data = e.response?.data;
     if (data is Map && data['detail'] != null) return data['detail'].toString();
     return e.message ?? 'Something went wrong';

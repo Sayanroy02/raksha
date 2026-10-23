@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Raksha+</string>
+    <string name="accessibility_service_description">Protects your phone against forced shutdown by thieves or attackers. When an attacker attempts to turn off the phone using the power button, Raksha+ intercepts the shutdown and activates Fake Switch-Off stealth protection while covertly sharing live GPS coordinates and recording audio.</string>
+</resources>

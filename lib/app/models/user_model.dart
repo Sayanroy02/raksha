@@ -15,6 +15,10 @@ class UserModel {
   final String? medicalNotes;
   final String? emergencyNotes;
   final String? homeAddress;
+  final String? safeAddress;
+  final String? guardianPhone;
+  final String? postOffice;
+  final String? policeStation;
 
   const UserModel({
     required this.id,
@@ -26,6 +30,10 @@ class UserModel {
     this.medicalNotes,
     this.emergencyNotes,
     this.homeAddress,
+    this.safeAddress,
+    this.guardianPhone,
+    this.postOffice,
+    this.policeStation,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) => UserModel(
@@ -38,6 +46,10 @@ class UserModel {
         medicalNotes: json['medical_notes'] as String?,
         emergencyNotes: json['emergency_notes'] as String?,
         homeAddress: json['home_address'] as String?,
+        safeAddress: json['safe_address'] as String? ?? json['home_address'] as String?,
+        guardianPhone: json['guardian_phone'] as String?,
+        postOffice: json['post_office'] as String?,
+        policeStation: json['police_station'] as String?,
       );
 
   Map<String, dynamic> toJson() => {
@@ -50,6 +62,10 @@ class UserModel {
         if (medicalNotes != null) 'medical_notes': medicalNotes,
         if (emergencyNotes != null) 'emergency_notes': emergencyNotes,
         if (homeAddress != null) 'home_address': homeAddress,
+        if (safeAddress != null) 'safe_address': safeAddress,
+        if (guardianPhone != null) 'guardian_phone': guardianPhone,
+        if (postOffice != null) 'post_office': postOffice,
+        if (policeStation != null) 'police_station': policeStation,
       };
 
   /// Serialize to a JSON string for storage

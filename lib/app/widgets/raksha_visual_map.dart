@@ -15,6 +15,7 @@ import 'package:latlong2/latlong.dart' as ll;
 import 'package:google_fonts/google_fonts.dart';
 
 import '../services/geoapify_service.dart';
+import '../services/alert_notification_service.dart';
 import '../theme/app_colors.dart';
 
 class RakshaMapMarker {
@@ -40,6 +41,7 @@ class RakshaVisualMap extends StatefulWidget {
   final double zoom;
   final List<RakshaMapMarker> markers;
   final List<ll.LatLng> polylinePoints;
+  final List<DangerZoneAlertItem> dangerZones;
   final bool showUserPulse;
   final bool isEmergency;
   final String? addressText;
@@ -52,6 +54,7 @@ class RakshaVisualMap extends StatefulWidget {
     this.zoom = 16.0,
     this.markers = const [],
     this.polylinePoints = const [],
+    this.dangerZones = const [],
     this.showUserPulse = true,
     this.isEmergency = false,
     this.addressText,
@@ -128,17 +131,43 @@ class _RakshaVisualMapState extends State<RakshaVisualMap>
               maxZoom: 19,
             ),
 
-            // Polyline breadcrumb trail
-            if (widget.polylinePoints.length > 1)
-              PolylineLayer(
-                polylines: [
+            // Danger Zones (Circles & Radius)
+            if (widget.dangerZones.any((z) => z.zoneType == 'CIRCLE'))
+              CircleLayer(
+                circles: widget.dangerZones
+                    .where((z) => z.zoneType == 'CIRCLE')
+                    .map((z) => CircleMarker(
+                          point: ll.LatLng(z.latitude, z.longitude),
+                          radius: z.radiusM,
+                          useRadiusInMeter: true,
+                          color: (z.severity == 'HIGH' ? Colors.redAccent : Colors.orangeAccent)
+                              .withValues(alpha: 0.22),
+                          borderColor: z.severity == 'HIGH' ? Colors.redAccent : Colors.orangeAccent,
+                          borderStrokeWidth: 2.0,
+                        ))
+                    .toList(),
+              ),
+
+            // Polyline breadcrumb trail + Danger Road line corridors
+            PolylineLayer(
+              polylines: [
+                if (widget.polylinePoints.length > 1)
                   Polyline(
                     points: widget.polylinePoints,
                     strokeWidth: 4.0,
                     color: AppColors.primary.withValues(alpha: 0.8),
                   ),
-                ],
-              ),
+                ...widget.dangerZones
+                    .where((z) => z.zoneType == 'ROAD_LINE' && z.pathCoordinates.isNotEmpty)
+                    .map((z) => Polyline(
+                          points: z.pathCoordinates.map((c) => ll.LatLng(c[0], c[1])).toList(),
+                          strokeWidth: 5.0,
+                          color: Colors.redAccent.withValues(alpha: 0.85),
+                          borderColor: Colors.amberAccent,
+                          borderStrokeWidth: 1.5,
+                        )),
+              ],
+            ),
 
             // Markers layer
             MarkerLayer(
@@ -191,6 +220,32 @@ class _RakshaVisualMapState extends State<RakshaVisualMap>
                     ),
                   ),
                 ),
+
+                // Danger Zone Warning Pins
+                ...widget.dangerZones.map((z) {
+                  final pos = z.zoneType == 'CIRCLE'
+                      ? ll.LatLng(z.latitude, z.longitude)
+                      : (z.pathCoordinates.isNotEmpty
+                          ? ll.LatLng(z.pathCoordinates.first[0], z.pathCoordinates.first[1])
+                          : ll.LatLng(z.latitude, z.longitude));
+                  return Marker(
+                    point: pos,
+                    width: 34,
+                    height: 34,
+                    child: Tooltip(
+                      message: '⚠️ ${z.title} (${z.zoneType == 'CIRCLE' ? '${z.radiusM.toInt()}m radius' : 'Corridor'})\n${z.description}',
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: z.severity == 'HIGH' ? Colors.red.shade900 : Colors.deepOrange.shade900,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.amberAccent, width: 2),
+                          boxShadow: const [BoxShadow(color: Colors.black45, blurRadius: 4)],
+                        ),
+                        child: const Icon(Icons.warning_amber_rounded, color: Colors.amberAccent, size: 18),
+                      ),
+                    ),
+                  );
+                }),
 
                 // Additional custom markers
                 ...widget.markers.map((m) {

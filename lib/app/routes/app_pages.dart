@@ -34,6 +34,7 @@ import '../views/notifications/notifications_view.dart';
 import '../views/guardian/guardian_qr_view.dart';
 import '../views/guardian/guardian_scanner_view.dart';
 import '../views/guardian/guardian_track_view.dart';
+import '../views/security/fake_shutdown_view.dart';
 
 import 'app_routes.dart';
 
@@ -142,6 +143,11 @@ class AppPages {
       name: AppRoutes.guardianTrack,
       page: () => const GuardianTrackView(),
       transition: Transition.rightToLeft,
+    ),
+    GetPage(
+      name: AppRoutes.fakeShutdown,
+      page: () => const FakeShutdownView(),
+      transition: Transition.fadeIn,
     ),
   ];
 }

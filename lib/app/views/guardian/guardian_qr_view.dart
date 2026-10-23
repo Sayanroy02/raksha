@@ -64,7 +64,9 @@ class _GuardianQrViewState extends State<GuardianQrView> {
         padding: const EdgeInsets.all(24),
         child: Obx(() {
           final user = auth.user.value;
-          final userId = user?.id.isNotEmpty == true ? user!.id : 'user_${user?.email ?? "active"}';
+          final userId = (user?.id != null && user!.id.isNotEmpty)
+              ? user.id
+              : (user?.email != null && user!.email.isNotEmpty ? user.email : '');
           final userName = user?.name.isNotEmpty == true ? user!.name : 'Raksha+ User';
           final userPhone = user?.phone ?? '';
           final userEmail = user?.email ?? '';

@@ -49,11 +49,12 @@ class AppConstants {
 
   // ── SOS ─────────────────────────────────────
   /// Duration the user must hold the SOS button before it triggers (seconds)
-  static const int sosHoldDuration = 3;
+  static const int sosHoldDuration = 2;
 
   // ── Timeouts ────────────────────────────────
-  static const int connectTimeout = 30; // seconds
-  static const int receiveTimeout = 30; // seconds
+  /// 75 seconds to gracefully handle Render cloud spin-ups / cold starts
+  static const int connectTimeout = 75; // seconds
+  static const int receiveTimeout = 75; // seconds
 
   // ── Location ────────────────────────────────
   /// How often to broadcast location during live sharing (seconds)

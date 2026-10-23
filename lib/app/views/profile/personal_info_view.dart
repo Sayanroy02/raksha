@@ -33,6 +33,9 @@ class _PersonalInfoViewState extends State<PersonalInfoView> {
   late final TextEditingController _nameCtrl;
   late final TextEditingController _emailCtrl;
   late final TextEditingController _phoneCtrl;
+  late final TextEditingController _guardianPhoneCtrl;
+  late final TextEditingController _postOfficeCtrl;
+  late final TextEditingController _policeStationCtrl;
   late final TextEditingController _medicalCtrl;
   late final TextEditingController _emergencyCtrl;
   late final TextEditingController _addressCtrl;
@@ -52,9 +55,12 @@ class _PersonalInfoViewState extends State<PersonalInfoView> {
     _nameCtrl = TextEditingController(text: user?.name ?? '');
     _emailCtrl = TextEditingController(text: user?.email ?? '');
     _phoneCtrl = TextEditingController(text: user?.phone ?? '');
+    _guardianPhoneCtrl = TextEditingController(text: user?.guardianPhone ?? '');
+    _postOfficeCtrl = TextEditingController(text: user?.postOffice ?? '');
+    _policeStationCtrl = TextEditingController(text: user?.policeStation ?? '');
     _medicalCtrl = TextEditingController(text: user?.medicalNotes ?? '');
     _emergencyCtrl = TextEditingController(text: user?.emergencyNotes ?? '');
-    _addressCtrl = TextEditingController(text: user?.homeAddress ?? '');
+    _addressCtrl = TextEditingController(text: user?.safeAddress ?? user?.homeAddress ?? '');
     if (user?.bloodGroup != null && bloodGroups.contains(user!.bloodGroup)) {
       _selectedBloodGroup = user.bloodGroup!;
     }
@@ -65,6 +71,9 @@ class _PersonalInfoViewState extends State<PersonalInfoView> {
     _nameCtrl.dispose();
     _emailCtrl.dispose();
     _phoneCtrl.dispose();
+    _guardianPhoneCtrl.dispose();
+    _postOfficeCtrl.dispose();
+    _policeStationCtrl.dispose();
     _medicalCtrl.dispose();
     _emergencyCtrl.dispose();
     _addressCtrl.dispose();
@@ -114,9 +123,13 @@ class _PersonalInfoViewState extends State<PersonalInfoView> {
       'email': email,
       'phone': phone,
       'blood_group': _selectedBloodGroup,
+      'safe_address': _addressCtrl.text.trim(),
+      'home_address': _addressCtrl.text.trim(),
+      'guardian_phone': _guardianPhoneCtrl.text.trim(),
+      'post_office': _postOfficeCtrl.text.trim(),
+      'police_station': _policeStationCtrl.text.trim(),
       'medical_notes': _medicalCtrl.text.trim(),
       'emergency_notes': _emergencyCtrl.text.trim(),
-      'home_address': _addressCtrl.text.trim(),
     };
 
     try {
@@ -127,7 +140,7 @@ class _PersonalInfoViewState extends State<PersonalInfoView> {
         await _storage.saveUserData(updatedUser.toJsonString());
       }
       Get.back();
-      Get.snackbar('✅ Profile Saved', 'Personal information and emergency data updated successfully.');
+      Get.snackbar('✅ Profile Saved', 'Personal information and emergency safety details updated successfully.');
     } catch (e) {
       // Offline fallback: save locally
       final curUser = auth.user.value;
@@ -137,14 +150,18 @@ class _PersonalInfoViewState extends State<PersonalInfoView> {
         email: email,
         phone: phone,
         bloodGroup: _selectedBloodGroup,
+        homeAddress: _addressCtrl.text.trim(),
+        safeAddress: _addressCtrl.text.trim(),
+        guardianPhone: _guardianPhoneCtrl.text.trim(),
+        postOffice: _postOfficeCtrl.text.trim(),
+        policeStation: _policeStationCtrl.text.trim(),
         medicalNotes: _medicalCtrl.text.trim(),
         emergencyNotes: _emergencyCtrl.text.trim(),
-        homeAddress: _addressCtrl.text.trim(),
       );
       auth.user.value = localUser;
       await _storage.saveUserData(localUser.toJsonString());
       Get.back();
-      Get.snackbar('✅ Saved Locally', 'Personal info saved to device.');
+      Get.snackbar('Saved Locally', 'Saved personal safety details offline.');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -226,33 +243,25 @@ class _PersonalInfoViewState extends State<PersonalInfoView> {
             ),
             const SizedBox(height: 14),
 
-            // Medical Notes
+            // Parents / Guardian Number
             _buildField(
-              label: 'Medical Notes & Allergies',
-              controller: _medicalCtrl,
-              icon: Icons.medical_services_outlined,
-              hint: 'e.g. Asthma, Penicillin allergy, Diabetic',
+              label: 'Parents or Guardian Phone Number',
+              controller: _guardianPhoneCtrl,
+              icon: Icons.family_restroom_rounded,
+              keyboardType: TextInputType.phone,
+              hint: 'e.g. +91 98765 43210',
             ),
             const SizedBox(height: 14),
 
-            // Emergency Notes
-            _buildField(
-              label: 'Emergency Instructions',
-              controller: _emergencyCtrl,
-              icon: Icons.notification_important_outlined,
-              hint: 'e.g. Call my sister Maya first on her mobile',
-            ),
-            const SizedBox(height: 14),
-
-            // Home Address with GPS Button
+            // Safe Address with GPS Button
             Row(
               children: [
                 Expanded(
                   child: _buildField(
-                    label: 'Primary Address',
+                    label: 'Safe Address / Home Location',
                     controller: _addressCtrl,
-                    icon: Icons.home_outlined,
-                    hint: 'Your home / frequent safety location',
+                    icon: Icons.shield_outlined,
+                    hint: 'Your safe home / refuge address',
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -268,6 +277,42 @@ class _PersonalInfoViewState extends State<PersonalInfoView> {
                       : const Icon(Icons.my_location_rounded, color: AppColors.primary),
                 ),
               ],
+            ),
+            const SizedBox(height: 14),
+
+            // Local Post Office
+            _buildField(
+              label: 'Local Post Office (P.O. & PIN)',
+              controller: _postOfficeCtrl,
+              icon: Icons.local_post_office_outlined,
+              hint: 'e.g. Siliguri H.P.O, PIN: 734001',
+            ),
+            const SizedBox(height: 14),
+
+            // Local Police Station
+            _buildField(
+              label: 'Nearest Police Station (P.S.)',
+              controller: _policeStationCtrl,
+              icon: Icons.local_police_outlined,
+              hint: 'e.g. Siliguri Kotwali Police Station',
+            ),
+            const SizedBox(height: 14),
+
+            // Medical Notes
+            _buildField(
+              label: 'Medical Notes & Allergies',
+              controller: _medicalCtrl,
+              icon: Icons.medical_services_outlined,
+              hint: 'e.g. Asthma, Penicillin allergy, Diabetic',
+            ),
+            const SizedBox(height: 14),
+
+            // Emergency Notes
+            _buildField(
+              label: 'Emergency Instructions',
+              controller: _emergencyCtrl,
+              icon: Icons.notification_important_outlined,
+              hint: 'e.g. Contact parents immediately upon SOS trigger',
             ),
             const SizedBox(height: 28),
 

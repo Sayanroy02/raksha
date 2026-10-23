@@ -58,12 +58,6 @@
     <!-- Used to launch the phone dialler to call emergency contacts -->
     <uses-permission android:name="android.permission.CALL_PHONE"/>
 
-    <!-- ── ANTI-THEFT & FAKE SWITCH-OFF PROTECTION ──────────── -->
-    <!-- Allows stealth overlay and keeping safety beacons active during fake shutdown -->
-    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
-    <uses-permission android:name="android.permission.WAKE_LOCK"/>
-    <uses-permission android:name="android.permission.DISABLE_KEYGUARD"/>
-
     <application
         android:label="Raksha+"
         android:name="${applicationName}"

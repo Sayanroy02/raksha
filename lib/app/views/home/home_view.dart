@@ -24,6 +24,7 @@ import '../../controllers/sos_controller.dart';
 import '../../routes/app_routes.dart';
 import '../../services/permission_service.dart';
 import '../../theme/app_colors.dart';
+import '../../utils/constants.dart';
 import '../../widgets/bottom_nav_bar.dart';
 import '../../widgets/feature_card.dart';
 import '../../widgets/sos_button.dart';
@@ -42,9 +43,13 @@ class _HomeViewState extends State<HomeView> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (Get.isRegistered<PermissionService>()) {
         final perm = Get.find<PermissionService>();
-        final hasAll = await perm.hasAllCriticalPermissions();
-        if (!hasAll) {
-          await perm.requestAllSafetyPermissions(showDialogFirst: true);
+        final alreadyAsked = await perm.hasPromptedOnce();
+        if (!alreadyAsked) {
+          await perm.markPromptedOnce();
+          final hasAll = await perm.hasAllCriticalPermissions();
+          if (!hasAll) {
+            await perm.requestAllSafetyPermissions(showDialogFirst: true);
+          }
         }
       }
     });
@@ -122,11 +127,68 @@ class _HomeViewState extends State<HomeView> {
               // SOS instruction text
               Center(
                 child: Text(
-                  'Hold for ${3} seconds to alert your\ntrusted contacts and share location.',
+                  'Hold for ${AppConstants.sosHoldDuration} seconds to alert your\ntrusted contacts and share location.',
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
               ).animate(delay: 300.ms).fadeIn(),
+
+              // ── Quick SOS Google Maps Nearest Emergency Bar ──
+              Obx(() {
+                if (!sos.isActive.value) return const SizedBox.shrink();
+                return Container(
+                  margin: const EdgeInsets.only(top: 16),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.redAccent.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.redAccent.withValues(alpha: 0.4)),
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.emergency_rounded, color: Colors.redAccent, size: 18),
+                          const SizedBox(width: 6),
+                          Text(
+                            'EMERGENCY LIVE · Navigation Support',
+                            style: GoogleFonts.poppins(color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: () => sos.openNearestInGoogleMaps('police'),
+                              icon: const Icon(Icons.local_police_rounded, size: 18, color: Colors.white),
+                              label: const Text('Nearest Police', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF1E88E5),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: () => sos.openNearestInGoogleMaps('hospital'),
+                              icon: const Icon(Icons.local_hospital_rounded, size: 18, color: Colors.white),
+                              label: const Text('Nearest Hospital', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFFE53935),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ).animate().fadeIn();
+              }),
 
               const SizedBox(height: 36),
 

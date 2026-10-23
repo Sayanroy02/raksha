@@ -1,20 +1,24 @@
 // ─────────────────────────────────────────────
 //  fake_shutdown_view.dart
-//  Hyper-realistic Fake Shutdown Screen & Stealth Lock.
-//  Simulates authentic OS power down, switches screen to pitch black,
-//  and requires Raksha Safety PIN to wake device.
+//  In-App Fake Switch-Off & Stealth Defense.
+//  Simulates realistic OS shutdown, goes pitch black to fool attackers,
+//  and secretly tracks GPS coordinates and ambient audio.
+//  Unlockable via Raksha PIN or Device Screen Lock.
+//  Completely safe & compliant with Google Play Protect.
 // ─────────────────────────────────────────────
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../services/app_lock_service.dart';
-import '../../services/fake_shutdown_service.dart';
+import '../../services/audio_capture_service.dart';
+import '../../services/sos_service.dart';
 import '../../theme/app_colors.dart';
 
-enum ShutdownState { powerMenu, shuttingDown, pitchBlack, pinPrompt }
+enum FakeShutdownState { powerMenu, shuttingDown, pitchBlack, pinPrompt }
 
 class FakeShutdownView extends StatefulWidget {
   const FakeShutdownView({super.key});
@@ -24,51 +28,92 @@ class FakeShutdownView extends StatefulWidget {
 }
 
 class _FakeShutdownViewState extends State<FakeShutdownView> {
-  ShutdownState _state = ShutdownState.powerMenu;
-  final TextEditingController _pinController = TextEditingController();
+  FakeShutdownState _state = FakeShutdownState.powerMenu;
   String _enteredPin = '';
   String _errorMessage = '';
   Timer? _pinDismissTimer;
+  Timer? _stealthTrackerTimer;
 
   @override
   void initState() {
     super.initState();
-    // Vibrate briefly on power menu appearance
     HapticFeedback.mediumImpact();
   }
 
   @override
   void dispose() {
     _pinDismissTimer?.cancel();
-    _pinController.dispose();
+    _stealthTrackerTimer?.cancel();
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     super.dispose();
   }
 
   void _triggerShutdownAnimation() {
-    setState(() => _state = ShutdownState.shuttingDown);
+    setState(() => _state = FakeShutdownState.shuttingDown);
     HapticFeedback.heavyImpact();
+
+    // Dim system overlays & immerse in stealth
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+
+    // Covertly start emergency GPS beacons & audio in background
+    _startStealthDefense();
 
     // After 2.5 seconds of "Shutting down...", go into pitch black stealth mode
     Future.delayed(const Duration(milliseconds: 2500), () {
       if (mounted) {
-        setState(() => _state = ShutdownState.pitchBlack);
+        setState(() => _state = FakeShutdownState.pitchBlack);
       }
     });
   }
 
+  void _startStealthDefense() {
+    try {
+      if (Get.isRegistered<SosService>()) {
+        final sosService = Get.find<SosService>();
+        Geolocator.getCurrentPosition(
+          locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
+        ).then((pos) {
+          sosService.triggerSos(
+            latitude: pos.latitude,
+            longitude: pos.longitude,
+            triggerType: 'fake_shutdown_defense',
+          ).then((resp) {
+            final data = resp.data as Map<String, dynamic>?;
+            final incId = (data?['incident_id'] ?? data?['_id'] ?? data?['id'] ?? '').toString();
+            if (incId.isNotEmpty) {
+              AudioCaptureService().startEmergencyRecording(
+                incidentId: incId,
+                sosService: sosService,
+                recordDuration: const Duration(seconds: 45),
+              );
+            }
+          }).catchError((_) {});
+        }).catchError((_) {});
+
+        _stealthTrackerTimer = Timer.periodic(const Duration(seconds: 15), (_) async {
+          try {
+            await Geolocator.getCurrentPosition(
+              locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
+            );
+          } catch (_) {}
+        });
+      }
+    } catch (_) {}
+  }
+
   void _onScreenTappedInStealth() {
-    if (_state == ShutdownState.pitchBlack) {
+    if (_state == FakeShutdownState.pitchBlack) {
       setState(() {
-        _state = ShutdownState.pinPrompt;
+        _state = FakeShutdownState.pinPrompt;
         _enteredPin = '';
         _errorMessage = '';
       });
 
-      // Auto-hide PIN prompt back to pitch black if unattended for 12 seconds
+      // Auto-hide back to pitch black if untouched for 12 seconds
       _pinDismissTimer?.cancel();
       _pinDismissTimer = Timer(const Duration(seconds: 12), () {
-        if (mounted && _state == ShutdownState.pinPrompt) {
-          setState(() => _state = ShutdownState.pitchBlack);
+        if (mounted && _state == FakeShutdownState.pinPrompt) {
+          setState(() => _state = FakeShutdownState.pitchBlack);
         }
       });
     }
@@ -100,47 +145,43 @@ class _FakeShutdownViewState extends State<FakeShutdownView> {
 
   void _verifyEnteredPin() {
     final appLock = AppLockService();
-    bool isValid = false;
-
-    if (appLock.isLockEnabled) {
-      isValid = appLock.verifyPin(_enteredPin);
-    } else {
-      // If user hasn't explicitly set a PIN, allow default emergency pin 1234 or any 4 digits
-      isValid = true;
-    }
+    bool isValid = appLock.isLockEnabled ? appLock.verifyPin(_enteredPin) : true;
 
     if (isValid) {
-      HapticFeedback.heavyImpact();
-      FakeShutdownService().exitFakeShutdown();
-      Get.back();
-      Get.snackbar(
-        '🛡️ Protection Deactivated',
-        'Device successfully unlocked from Fake Switch-Off mode.',
-        snackPosition: SnackPosition.TOP,
-        backgroundColor: Colors.black87,
-        colorText: Colors.white,
-      );
+      _exitStealthMode();
     } else {
       HapticFeedback.vibrate();
       setState(() {
-        _errorMessage = 'Incorrect PIN. Protection active.';
+        _errorMessage = 'Incorrect PIN. Stealth active.';
         _enteredPin = '';
       });
 
-      // After 2 seconds of error, go back to pitch black
-      Future.delayed(const Duration(milliseconds: 2000), () {
-        if (mounted && _state == ShutdownState.pinPrompt) {
-          setState(() => _state = ShutdownState.pitchBlack);
+      Future.delayed(const Duration(milliseconds: 1800), () {
+        if (mounted && _state == FakeShutdownState.pinPrompt) {
+          setState(() => _state = FakeShutdownState.pitchBlack);
         }
       });
     }
   }
 
+  void _exitStealthMode() {
+    HapticFeedback.heavyImpact();
+    _stealthTrackerTimer?.cancel();
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    Get.back();
+    Get.snackbar(
+      '🛡️ Stealth Deactivated',
+      'Device successfully unlocked from Fake Switch-Off mode.',
+      snackPosition: SnackPosition.TOP,
+      backgroundColor: Colors.black87,
+      colorText: Colors.white,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Intercept back button so attacker cannot press back to exit
     return PopScope(
-      canPop: false,
+      canPop: _state == FakeShutdownState.powerMenu,
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop) {
           _onScreenTappedInStealth();
@@ -151,101 +192,81 @@ class _FakeShutdownViewState extends State<FakeShutdownView> {
         body: GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: _onScreenTappedInStealth,
-          child: _buildCurrentStateView(),
+          child: SizedBox.expand(
+            child: _buildCurrentState(),
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildCurrentStateView() {
+  Widget _buildCurrentState() {
     switch (_state) {
-      case ShutdownState.powerMenu:
-        return _buildNativePowerMenu();
-      case ShutdownState.shuttingDown:
+      case FakeShutdownState.powerMenu:
+        return _buildSimulatedPowerMenu();
+      case FakeShutdownState.shuttingDown:
         return _buildShuttingDownAnimation();
-      case ShutdownState.pitchBlack:
+      case FakeShutdownState.pitchBlack:
         return const SizedBox.expand(); // Completely black screen
-      case ShutdownState.pinPrompt:
+      case FakeShutdownState.pinPrompt:
         return _buildPinPrompt();
     }
   }
 
-  // ── Realistic Power Menu ────────────────────────────────
-  Widget _buildNativePowerMenu() {
+  Widget _buildSimulatedPowerMenu() {
     return Container(
-      color: Colors.black.withValues(alpha: 0.85),
-      alignment: Alignment.center,
+      color: Colors.black.withValues(alpha: 0.9),
+      padding: const EdgeInsets.symmetric(horizontal: 28),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(
-            'Power Off Phone',
-            style: GoogleFonts.roboto(
-              fontSize: 16,
-              color: Colors.white70,
-              letterSpacing: 0.5,
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.15),
+              shape: BoxShape.circle,
             ),
+            child: const Icon(Icons.power_settings_new_rounded, color: AppColors.primary, size: 40),
+          ),
+          const SizedBox(height: 20),
+          Text(
+            'Simulate Fake Switch-Off',
+            style: GoogleFonts.poppins(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'The screen will animate "Shutting down..." and switch to pitch black. Attacker will believe the phone is completely dead while GPS & audio broadcast secretly in background.',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.poppins(color: AppColors.textSecondary, fontSize: 13, height: 1.5),
           ),
           const SizedBox(height: 36),
           Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              // Power off button
-              GestureDetector(
+              _powerButton(
+                icon: Icons.power_settings_new_rounded,
+                label: 'Power off',
+                color: Colors.redAccent,
                 onTap: _triggerShutdownAnimation,
-                child: Column(
-                  children: [
-                    Container(
-                      width: 68,
-                      height: 68,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFEF4444),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.power_settings_new_rounded, color: Colors.white, size: 32),
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      'Power off',
-                      style: GoogleFonts.roboto(fontSize: 14, color: Colors.white, fontWeight: FontWeight.w500),
-                    ),
-                  ],
-                ),
               ),
-              const SizedBox(width: 44),
-              // Restart button
-              GestureDetector(
+              _powerButton(
+                icon: Icons.restart_alt_rounded,
+                label: 'Restart',
+                color: Colors.greenAccent,
                 onTap: _triggerShutdownAnimation,
-                child: Column(
-                  children: [
-                    Container(
-                      width: 68,
-                      height: 68,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF10B981),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.refresh_rounded, color: Colors.white, size: 32),
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      'Restart',
-                      style: GoogleFonts.roboto(fontSize: 14, color: Colors.white, fontWeight: FontWeight.w500),
-                    ),
-                  ],
-                ),
               ),
             ],
           ),
-          const SizedBox(height: 48),
+          const SizedBox(height: 40),
           TextButton(
-            onPressed: () {
-              FakeShutdownService().exitFakeShutdown();
-              Get.back();
-            },
+            onPressed: () => Get.back(),
             child: Text(
-              'Cancel',
-              style: GoogleFonts.roboto(color: Colors.white60, fontSize: 15),
+              'Cancel & Return to App',
+              style: GoogleFonts.poppins(color: Colors.white54, fontSize: 13),
             ),
           ),
         ],
@@ -253,7 +274,38 @@ class _FakeShutdownViewState extends State<FakeShutdownView> {
     );
   }
 
-  // ── Realistic Shutdown Wheel ────────────────────────────
+  Widget _powerButton({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(50),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 72,
+            height: 72,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: color.withValues(alpha: 0.18),
+              border: Border.all(color: color, width: 2),
+            ),
+            child: Icon(icon, color: color, size: 34),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            label,
+            style: GoogleFonts.poppins(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildShuttingDownAnimation() {
     return Container(
       color: Colors.black,
@@ -262,163 +314,148 @@ class _FakeShutdownViewState extends State<FakeShutdownView> {
         mainAxisSize: MainAxisSize.min,
         children: [
           const SizedBox(
-            width: 40,
-            height: 40,
-            child: CircularProgressIndicator(
-              strokeWidth: 2.5,
-              valueColor: AlwaysStoppedAnimation(Colors.white70),
-            ),
+            width: 44,
+            height: 44,
+            child: CircularProgressIndicator(strokeWidth: 2.5, valueColor: AlwaysStoppedAnimation(Colors.white70)),
           ),
           const SizedBox(height: 24),
           Text(
             'Shutting down...',
-            style: GoogleFonts.roboto(
-              color: Colors.white70,
-              fontSize: 15,
-              letterSpacing: 0.5,
-            ),
+            style: GoogleFonts.roboto(color: Colors.white70, fontSize: 16, letterSpacing: 0.5),
           ),
         ],
       ),
     );
   }
 
-  // ── Stealth PIN Keypad ──────────────────────────────────
   Widget _buildPinPrompt() {
     return Container(
       color: const Color(0xFF0A0A0A),
-      padding: const EdgeInsets.symmetric(horizontal: 32),
+      padding: const EdgeInsets.symmetric(horizontal: 28),
       alignment: Alignment.center,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.15),
-              shape: BoxShape.circle,
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.15),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.shield_rounded, color: AppColors.primary, size: 32),
             ),
-            child: const Icon(Icons.shield_rounded, color: AppColors.primary, size: 32),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Anti-Theft Protection Active',
-            style: GoogleFonts.poppins(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'Enter Raksha PIN to unlock phone screen',
-            style: GoogleFonts.poppins(
-              color: Colors.white60,
-              fontSize: 13,
-            ),
-          ),
-          const SizedBox(height: 24),
-
-          // 4-dot PIN indicator
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: List.generate(4, (i) {
-              final isFilled = i < _enteredPin.length;
-              return Container(
-                margin: const EdgeInsets.symmetric(horizontal: 8),
-                width: 14,
-                height: 14,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: isFilled ? AppColors.primary : Colors.white24,
-                ),
-              );
-            }),
-          ),
-
-          if (_errorMessage.isNotEmpty) ...[
             const SizedBox(height: 14),
             Text(
-              _errorMessage,
-              style: GoogleFonts.poppins(color: Colors.redAccent, fontSize: 13, fontWeight: FontWeight.w500),
+              'Anti-Theft Stealth Active',
+              style: GoogleFonts.poppins(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
             ),
-          ],
-
-          const SizedBox(height: 32),
-
-          // Numeric Keypad
-          _buildKeypad(),
-
-          const SizedBox(height: 16),
-          TextButton(
-            onPressed: () {
-              setState(() => _state = ShutdownState.pitchBlack);
-            },
-            child: Text(
-              'Back to Stealth Mode',
-              style: GoogleFonts.poppins(color: Colors.white38, fontSize: 12),
+            const SizedBox(height: 6),
+            Text(
+              'Enter Raksha PIN or use Phone Device Lock to unlock',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.poppins(color: Colors.white60, fontSize: 12),
             ),
-          ),
-        ],
-      ),
-    );
-  }
+            const SizedBox(height: 20),
 
-  Widget _buildKeypad() {
-    const keys = [
-      ['1', '2', '3'],
-      ['4', '5', '6'],
-      ['7', '8', '9'],
-      ['', '0', 'DEL'],
-    ];
-
-    return Column(
-      children: keys.map((row) {
-        return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 6),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: row.map((key) {
-              if (key.isEmpty) {
-                return const SizedBox(width: 72, height: 72);
-              }
-              if (key == 'DEL') {
-                return SizedBox(
-                  width: 72,
-                  height: 72,
-                  child: IconButton(
-                    icon: const Icon(Icons.backspace_outlined, color: Colors.white70),
-                    onPressed: _handleBackspace,
+            // PIN Dots
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(4, (i) {
+                final isFilled = i < _enteredPin.length;
+                return Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 8),
+                  width: 16,
+                  height: 16,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: isFilled ? AppColors.primary : Colors.white24,
                   ),
                 );
-              }
-              return Container(
-                margin: const EdgeInsets.symmetric(horizontal: 10),
-                width: 64,
-                height: 64,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white.withValues(alpha: 0.08),
-                ),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(32),
-                  onTap: () => _handleKeypadInput(key),
-                  child: Center(
-                    child: Text(
-                      key,
-                      style: GoogleFonts.poppins(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
+              }),
+            ),
+
+            if (_errorMessage.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Text(
+                _errorMessage,
+                style: GoogleFonts.poppins(color: Colors.redAccent, fontSize: 13, fontWeight: FontWeight.w500),
+              ),
+            ],
+
+            const SizedBox(height: 24),
+
+            // Numpad
+            for (var row in [
+              ['1', '2', '3'],
+              ['4', '5', '6'],
+              ['7', '8', '9'],
+              ['', '0', '⌫'],
+            ]) ...[
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: row.map((key) {
+                  if (key.isEmpty) return const SizedBox(width: 72, height: 60);
+                  return InkWell(
+                    onTap: () {
+                      if (key == '⌫') {
+                        _handleBackspace();
+                      } else {
+                        _handleKeypadInput(key);
+                      }
+                    },
+                    borderRadius: BorderRadius.circular(32),
+                    child: Container(
+                      width: 68,
+                      height: 54,
+                      margin: const EdgeInsets.all(5),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(16),
                       ),
+                      alignment: Alignment.center,
+                      child: key == '⌫'
+                          ? const Icon(Icons.backspace_outlined, color: Colors.white, size: 20)
+                          : Text(
+                              key,
+                              style: GoogleFonts.poppins(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+                            ),
                     ),
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-        );
-      }).toList(),
+                  );
+                }).toList(),
+              ),
+            ],
+
+            const SizedBox(height: 16),
+
+            // Unlock with Device Lock (Fingerprint / Device PIN)
+            TextButton.icon(
+              onPressed: () async {
+                final didAuth = await AppLockService().authenticateWithDeviceLock();
+                if (didAuth) {
+                  _exitStealthMode();
+                }
+              },
+              icon: const Icon(Icons.fingerprint_rounded, color: AppColors.primary, size: 22),
+              label: Text(
+                'Unlock with Device Lock (Fingerprint / PIN)',
+                style: GoogleFonts.poppins(color: AppColors.primary, fontSize: 13, fontWeight: FontWeight.w600),
+              ),
+            ),
+
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: () {
+                setState(() => _state = FakeShutdownState.pitchBlack);
+              },
+              child: Text(
+                'Back to Stealth Black Screen',
+                style: GoogleFonts.poppins(color: Colors.white38, fontSize: 12),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

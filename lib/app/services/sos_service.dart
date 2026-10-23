@@ -92,6 +92,25 @@ class SosService {
     );
   }
 
+  /// Upload real 30s video evidence captured automatically during SOS trigger
+  /// POST /sos/{incident_id}/upload-video
+  Future<Response> uploadVideoFile({
+    required String incidentId,
+    required String filePath,
+  }) async {
+    final formData = FormData.fromMap({
+      'file': await MultipartFile.fromFile(
+        filePath,
+        filename: 'sos_video_${DateTime.now().millisecondsSinceEpoch}.mp4',
+      ),
+    });
+
+    return _api.dio.post(
+      '/sos/$incidentId/upload-video',
+      data: formData,
+    );
+  }
+
   /// Manually or automatically dispatch emergency live location email via Resend
   /// POST /sos/{incident_id}/send-email
   Future<Response> sendEmailAlert(String incidentId, {String? email}) {

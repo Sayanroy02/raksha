@@ -22,19 +22,36 @@ class AudioCaptureService {
   String? _currentRecordingPath;
   Timer? _autoStopTimer;
 
+  bool _shouldStreamContinuously = false;
+
   bool get isRecording => _isRecording;
 
   /// Start recording emergency audio immediately upon SOS trigger.
-  /// Automatically stops and uploads after [recordDuration] (default 20 seconds).
+  /// Continuously streams/uploads in chunks while SOS remains active
+  /// so admin panel can hear ambient audio in real time.
   Future<void> startEmergencyRecording({
     required String incidentId,
     required SosService sosService,
-    Duration recordDuration = const Duration(seconds: 20),
+    Duration chunkDuration = const Duration(seconds: 15),
+    Duration? recordDuration,
   }) async {
+    _shouldStreamContinuously = true;
     if (_isRecording) return;
+    await _recordChunk(
+      incidentId: incidentId,
+      sosService: sosService,
+      chunkDuration: recordDuration ?? chunkDuration,
+    );
+  }
+
+  Future<void> _recordChunk({
+    required String incidentId,
+    required SosService sosService,
+    required Duration chunkDuration,
+  }) async {
+    if (!_shouldStreamContinuously) return;
 
     try {
-      // 1. Ensure microphone permission
       final micStatus = await Permission.microphone.request();
       if (!micStatus.isGranted) {
         debugPrint('[AudioCaptureService] Microphone permission not granted');
@@ -42,17 +59,12 @@ class AudioCaptureService {
       }
 
       final hasPermission = await _recorder.hasPermission();
-      if (!hasPermission) {
-        debugPrint('[AudioCaptureService] Recorder reports permission denied');
-        return;
-      }
+      if (!hasPermission) return;
 
-      // 2. Prepare destination path
       final tempDir = await getTemporaryDirectory();
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       _currentRecordingPath = '${tempDir.path}/sos_ambient_$timestamp.m4a';
 
-      // 3. Start recording
       const config = RecordConfig(
         encoder: AudioEncoder.aacLc,
         bitRate: 128000,
@@ -61,15 +73,20 @@ class AudioCaptureService {
 
       await _recorder.start(config, path: _currentRecordingPath!);
       _isRecording = true;
-      debugPrint('[AudioCaptureService] 🎙️ Recording ambient audio to: $_currentRecordingPath');
+      debugPrint('[AudioCaptureService] 🎙️ Live audio chunk recording started');
 
-      // 4. Set auto-stop timer to upload when done
       _autoStopTimer?.cancel();
-      _autoStopTimer = Timer(recordDuration, () async {
-        await stopAndUploadRecording(incidentId: incidentId, sosService: sosService);
+      _autoStopTimer = Timer(chunkDuration, () async {
+        if (_shouldStreamContinuously) {
+          await stopAndUploadRecording(incidentId: incidentId, sosService: sosService);
+          // Chain next chunk immediately if SOS is still active
+          if (_shouldStreamContinuously) {
+            _recordChunk(incidentId: incidentId, sosService: sosService, chunkDuration: chunkDuration);
+          }
+        }
       });
     } catch (e) {
-      debugPrint('[AudioCaptureService] Error starting audio recording: $e');
+      debugPrint('[AudioCaptureService] Error recording audio chunk: $e');
       _isRecording = false;
     }
   }
@@ -88,12 +105,12 @@ class AudioCaptureService {
       final finalPath = path ?? _currentRecordingPath;
 
       if (finalPath != null && File(finalPath).existsSync()) {
-        debugPrint('[AudioCaptureService] 📤 Uploading emergency audio evidence...');
+        debugPrint('[AudioCaptureService] 📤 Uploading emergency live audio chunk...');
         final resp = await sosService.uploadAudioFile(
           incidentId: incidentId,
           filePath: finalPath,
         );
-        debugPrint('[AudioCaptureService] ✅ Audio evidence uploaded: ${resp.data}');
+        debugPrint('[AudioCaptureService] ✅ Real-time audio evidence uploaded: ${resp.data}');
         return finalPath;
       }
     } catch (e) {
@@ -104,8 +121,9 @@ class AudioCaptureService {
     return null;
   }
 
-  /// Cancel current recording without upload
+  /// Cancel current recording and stop streaming loop
   Future<void> cancelRecording() async {
+    _shouldStreamContinuously = false;
     _autoStopTimer?.cancel();
     if (_isRecording) {
       try {
@@ -116,6 +134,7 @@ class AudioCaptureService {
   }
 
   void dispose() {
+    _shouldStreamContinuously = false;
     _autoStopTimer?.cancel();
     _recorder.dispose();
   }

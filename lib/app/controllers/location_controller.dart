@@ -14,6 +14,8 @@ import 'package:url_launcher/url_launcher.dart';
 import '../models/location_log_model.dart';
 import '../services/geoapify_service.dart';
 import '../services/alert_notification_service.dart';
+import '../services/api_service.dart';
+import 'package:flutter/foundation.dart';
 
 class LocationController extends GetxController {
   final GeoapifyService _geoapify = GeoapifyService();
@@ -21,6 +23,7 @@ class LocationController extends GetxController {
   // ── State ────────────────────────────────────
   final Rx<ll.LatLng>        currentPoint      = const ll.LatLng(26.7271, 88.3953).obs;
   final RxList<LocationLogModel> locationHistory = <LocationLogModel>[].obs;
+  final RxList<DangerZoneAlertItem> dangerZones = <DangerZoneAlertItem>[].obs;
   final RxBool isLoadingHistory = false.obs;
   final RxBool isLocating       = false.obs;
   final RxDouble currentAccuracy = 5.0.obs;
@@ -35,6 +38,25 @@ class LocationController extends GetxController {
     super.onInit();
     _startTracking();
     _loadHistory();
+    loadDangerZones();
+  }
+
+  /// Fetches admin-marked danger zones and road line corridors in real time
+  Future<void> loadDangerZones() async {
+    try {
+      if (Get.isRegistered<ApiService>()) {
+        final api = Get.find<ApiService>();
+        final resp = await api.dio.get('/places/danger-zones');
+        if (resp.statusCode == 200 && resp.data is List) {
+          final zones = (resp.data as List)
+              .map((z) => DangerZoneAlertItem.fromJson(z as Map<String, dynamic>))
+              .toList();
+          dangerZones.assignAll(zones);
+        }
+      }
+    } catch (e) {
+      debugPrint('[LocationController] Error loading danger zones: $e');
+    }
   }
 
   // ── Live Tracking ────────────────────────────
@@ -172,6 +194,7 @@ class LocationController extends GetxController {
   /// Recenter the map on user position
   void recenterCamera() {
     isLocating.value = true;
+    loadDangerZones();
     Geolocator.getCurrentPosition(
       locationSettings: const LocationSettings(
         accuracy: LocationAccuracy.best,

@@ -11,9 +11,25 @@ import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import 'package:shared_preferences/shared_preferences.dart';
+
 import '../theme/app_colors.dart';
 
 class PermissionService extends GetxService {
+  static const String _kAskedOnceKey = 'safety_permissions_asked_once';
+
+  /// Check if the initial safety permission dialog has already been shown once
+  Future<bool> hasPromptedOnce() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_kAskedOnceKey) ?? false;
+  }
+
+  /// Mark that permissions have been prompted once so user is not prompted on every launch
+  Future<void> markPromptedOnce() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_kAskedOnceKey, true);
+  }
+
   /// Check if all critical permissions are granted
   Future<bool> hasAllCriticalPermissions() async {
     final loc = await Permission.location.isGranted;

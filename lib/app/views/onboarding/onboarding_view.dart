@@ -30,7 +30,7 @@ const _slides = [
   ),
   _Slide(
     'Emergency SOS\nIn Seconds',
-    'Hold the SOS button for 3 seconds to instantly alert your trusted contacts and share your location.',
+    'Hold the SOS button for 2 seconds to instantly alert your trusted contacts and share your location.',
     Icons.sos_rounded,
   ),
   _Slide(

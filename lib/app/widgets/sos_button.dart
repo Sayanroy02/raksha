@@ -2,7 +2,7 @@
 //  sos_button.dart
 //  The centrepiece SOS button:
 //  • Glowing pink circle with "SOS" text
-//  • User holds it for 3 seconds to trigger
+//  • User holds it for 2 seconds to trigger
 //  • Animated fill ring shows hold progress
 //  • Pulsing glow when SOS is active (live)
 // ─────────────────────────────────────────────

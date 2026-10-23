@@ -57,10 +57,12 @@ class _GuardianScannerViewState extends State<GuardianScannerView> {
 
     try {
       final decoded = jsonDecode(rawValue) as Map<String, dynamic>;
-      if (decoded['user_id'] != null) {
-        targetId = decoded['user_id'].toString();
-      } else if (decoded['email'] != null) {
-        targetId = decoded['email'].toString();
+      final rawUid = decoded['user_id']?.toString().trim();
+      final rawEmail = decoded['email']?.toString().trim();
+      if (rawUid != null && rawUid.isNotEmpty && rawUid != 'active_user') {
+        targetId = rawUid;
+      } else if (rawEmail != null && rawEmail.isNotEmpty) {
+        targetId = rawEmail;
       }
       if (decoded['name'] != null) {
         targetName = decoded['name'].toString();
@@ -70,6 +72,10 @@ class _GuardianScannerViewState extends State<GuardianScannerView> {
       }
     } catch (_) {
       targetId = rawValue.trim();
+    }
+
+    if (targetId.startsWith('user_')) {
+      targetId = targetId.substring(5).trim();
     }
 
     try {

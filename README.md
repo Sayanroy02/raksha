@@ -1,7 +1,7 @@
 # 📱 Raksha+ Mobile Client — Project Documentation
 
 > **AI-Powered Women Safety & Real-Time Emergency Network (Flutter iOS & Android)**  
-> Mobile client built with **Flutter 3**, **GetX**, **Dio**, **Flutter Map (Geoapify)**, **Ambient Audio Evidence Recording**, **Anti-Theft Fake Switch-Off Defense**, and **Proximity Danger Radar**.
+> Mobile client built with **Flutter 3**, **GetX**, **Dio**, **Flutter Map (Geoapify)**, **Ambient Audio Evidence Recording**, **Device Lock & PIN Security**, and **Proximity Danger Radar**.
 
 ---
 
@@ -11,15 +11,14 @@
 3. [Architecture & Design Patterns](#-architecture--design-patterns)
 4. [Project Directory Structure](#-project-directory-structure)
 5. [Key Feature Walkthrough](#-key-feature-walkthrough)
-   - [1. 3-Second SOS Emergency Trigger](#1-3-second-sos-emergency-trigger)
+   - [1. 2-Second SOS Emergency Trigger](#1-2-second-sos-emergency-trigger)
    - [2. Ambient Microphone Audio Capture](#2-ambient-microphone-audio-capture)
-   - [3. Anti-Theft Fake Switch-Off (Power Menu Defense)](#3-anti-theft-fake-switch-off-power-menu-defense)
-   - [4. 4-Digit App Lock & 365-Day Session Persistence](#4-4-digit-app-lock--365-day-session-persistence)
-   - [5. Proximity Danger Zone & Road Corridor Radar](#5-proximity-danger-zone--road-corridor-radar)
-   - [6. Tactical Mapping & Geocoding](#6-tactical-mapping--geocoding)
-   - [7. Guardian QR Pairing & Real-Time Tracker](#7-guardian-qr-pairing--real-time-tracker)
-   - [8. Multi-Sensor AI Threat Monitor](#8-multi-sensor-ai-threat-monitor)
-   - [9. Evidence Vault](#9-evidence-vault)
+   - [3. Device Lock & 4-Digit PIN Security](#3-device-lock--4-digit-pin-security)
+   - [4. Proximity Danger Zone & Road Corridor Radar](#4-proximity-danger-zone--road-corridor-radar)
+   - [5. Tactical Mapping & Geocoding](#5-tactical-mapping--geocoding)
+   - [6. Guardian QR Pairing & Real-Time Tracker](#6-guardian-qr-pairing--real-time-tracker)
+   - [7. Multi-Sensor AI Threat Monitor](#7-multi-sensor-ai-threat-monitor)
+   - [8. Evidence Vault](#8-evidence-vault)
 6. [Screens & Navigation Flow (Named Routes)](#-screens--navigation-flow-named-routes)
 7. [Device Permissions Setup (Android & iOS)](#-device-permissions-setup-android--ios)
 8. [Environment Setup & Configuration (`.env`)](#-environment-setup--configuration-env)
@@ -33,9 +32,9 @@
 Raksha+ is a mobile safety application designed to safeguard women commuters, students, and citizens. It transforms the smartphone into a personal security hub that operates reliably even during extreme distress, network drops, or attempts by attackers to tamper with the device.
 
 ### Core Highlights:
-- **Instant SOS**: 3-second hold countdown to prevent accidental triggers, with instant zero-timeout GPS lock.
+- **Instant SOS**: 2-second hold countdown to prevent accidental triggers, with instant zero-timeout GPS lock.
 - **Stealth Audio Evidence**: Records ambient microphone audio during emergencies and auto-uploads to the backend.
-- **Anti-Theft Fake Shutdown**: Simulates an authentic device power-off, turns the screen pitch black to fool attackers, while secretly broadcasting live GPS coordinates and recording audio.
+- **Device Lock & PIN Security**: Protects your app, tracking telemetry, and evidence vault using Phone Screen Lock (Fingerprint/PIN) or a custom 4-digit PIN.
 - **Danger Road & Area Radar**: Warns users with audible vibrations when approaching unsafe roads or crime-prone dark zones marked by emergency administrators.
 - **Guardian QR Pairing**: Generates a shareable QR code allowing trusted family members to track live GPS telemetry on their own phones without cumbersome logins.
 - **365-Day Login Persistence & App Lock**: Long-lived JWT sessions protected by a device-level 4-digit PIN barrier.

@@ -6,6 +6,7 @@
 //  • Real-time location broadcasting & WhatsApp sharing
 // ─────────────────────────────────────────────
 import 'dart:async';
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -13,7 +14,9 @@ import 'package:url_launcher/url_launcher.dart';
 import '../services/sos_service.dart';
 import '../services/geoapify_service.dart';
 import '../services/audio_capture_service.dart';
+import '../services/video_evidence_service.dart';
 import '../services/alert_notification_service.dart';
+import '../theme/app_colors.dart';
 import '../utils/constants.dart';
 
 class SosController extends GetxController {
@@ -117,8 +120,14 @@ class SosController extends GetxController {
       if (incId.isNotEmpty) {
         _sosService.sendEmailAlert(incId).ignore();
 
-        // Capture real ambient microphone audio during SOS emergency
+        // Capture real ambient microphone audio during SOS emergency (live streaming to admin)
         AudioCaptureService().startEmergencyRecording(
+          incidentId: incId,
+          sosService: _sosService,
+        ).ignore();
+
+        // Automatically capture 30 seconds of video evidence and upload to backend
+        VideoEvidenceService().start30sVideoEvidenceCapture(
           incidentId: incId,
           sosService: _sosService,
         ).ignore();
@@ -126,7 +135,7 @@ class SosController extends GetxController {
         // High priority emergency push notification
         AlertNotificationService().dispatchEmergencyAlert(
           title: 'SOS Emergency Alert Live',
-          message: 'Real-time GPS broadcasted. Email & notifications dispatched to your safety circle.',
+          message: 'Real-time GPS, live audio & 30s video evidence dispatched to your safety circle and admin.',
         );
       }
     } catch (e) {
@@ -196,6 +205,37 @@ class SosController extends GetxController {
     }
   }
 
+  /// Direct Google Maps Navigation to nearest Police Station or Hospital
+  Future<void> openNearestInGoogleMaps(String placeType) async {
+    try {
+      final (lat, lng) = await _getFastPosition();
+      final isPolice = placeType.toLowerCase().contains('police');
+      final query = isPolice ? 'nearest police station' : 'nearest hospital';
+      final encodedQuery = Uri.encodeComponent(query);
+
+      final mapsUrl = 'https://www.google.com/maps/search/$encodedQuery/@$lat,$lng,15z';
+      final geoUri = Uri.parse('geo:$lat,$lng?q=$encodedQuery');
+      final webUri = Uri.parse(mapsUrl);
+
+      if (await canLaunchUrl(geoUri)) {
+        await launchUrl(geoUri, mode: LaunchMode.externalApplication);
+      } else {
+        await launchUrl(webUri, mode: LaunchMode.externalApplication);
+      }
+
+      Get.snackbar(
+        isPolice ? '🚓 Routing to Police Station' : '🏥 Routing to Hospital',
+        'Opening Google Maps with live navigation from your coordinates.',
+        backgroundColor: AppColors.cardBg,
+        colorText: Colors.white,
+        snackPosition: SnackPosition.TOP,
+        duration: const Duration(seconds: 4),
+      );
+    } catch (e) {
+      Get.snackbar('Google Maps', 'Could not open Google Maps navigation: $e');
+    }
+  }
+
   // ── Stop sharing ─────────────────────────────
 
   Future<void> stopSos() async {
@@ -204,8 +244,12 @@ class SosController extends GetxController {
     isLoading.value = true;
     try {
       if (activeIncidentId.value.isNotEmpty) {
-        // Finalize and upload any ongoing audio recording
+        // Finalize and upload any ongoing audio and video recording
         await AudioCaptureService().stopAndUploadRecording(
+          incidentId: activeIncidentId.value,
+          sosService: _sosService,
+        );
+        await VideoEvidenceService().stopAndUploadVideo(
           incidentId: activeIncidentId.value,
           sosService: _sosService,
         );

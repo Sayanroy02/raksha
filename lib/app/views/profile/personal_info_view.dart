@@ -11,6 +11,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:geolocator/geolocator.dart';
 
 import '../../controllers/auth_controller.dart';
+import '../../controllers/profile_controller.dart';
 import '../../models/user_model.dart';
 import '../../services/auth_service.dart';
 import '../../services/geoapify_service.dart';
@@ -137,6 +138,9 @@ class _PersonalInfoViewState extends State<PersonalInfoView> {
       if (resp.statusCode == 200) {
         final updatedUser = UserModel.fromJson(resp.data as Map<String, dynamic>);
         auth.user.value = updatedUser;
+        if (Get.isRegistered<ProfileController>()) {
+          Get.find<ProfileController>().user.value = updatedUser;
+        }
         await _storage.saveUserData(updatedUser.toJsonString());
       }
       Get.back();
@@ -159,6 +163,9 @@ class _PersonalInfoViewState extends State<PersonalInfoView> {
         emergencyNotes: _emergencyCtrl.text.trim(),
       );
       auth.user.value = localUser;
+      if (Get.isRegistered<ProfileController>()) {
+        Get.find<ProfileController>().user.value = localUser;
+      }
       await _storage.saveUserData(localUser.toJsonString());
       Get.back();
       Get.snackbar('Saved Locally', 'Saved personal safety details offline.');

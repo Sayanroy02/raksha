@@ -29,6 +29,7 @@ class ProfileView extends GetView<ProfileController> {
       _SettingsItem(Icons.qr_code_scanner_rounded,   'Scan Guardian QR',       AppRoutes.guardianScanner),
       _SettingsItem(Icons.shield_outlined,           'Safety Circle',          AppRoutes.safetyCircle),
       _SettingsItem(Icons.location_on_outlined,      'Live Location',          AppRoutes.liveLocation),
+      _SettingsItem(Icons.local_hospital_outlined,   'Nearby Police & Hospitals', AppRoutes.nearbyServices),
       _SettingsItem(Icons.notifications_outlined,    'Notifications',          AppRoutes.notifications),
       _SettingsItem(Icons.help_outline_rounded,      'Help & Support',         null),
       _SettingsItem(Icons.info_outline_rounded,      'About Raksha+',          null),

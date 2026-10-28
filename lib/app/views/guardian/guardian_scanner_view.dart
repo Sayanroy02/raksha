@@ -166,6 +166,31 @@ class _GuardianScannerViewState extends State<GuardianScannerView> {
           MobileScanner(
             controller: _scannerController,
             onDetect: _onDetect,
+            errorBuilder: (context, error, child) {
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.videocam_off_rounded, color: Colors.white54, size: 48),
+                      const SizedBox(height: 12),
+                      Text(
+                        'Camera access required or unavailable.',
+                        style: GoogleFonts.poppins(color: Colors.white70, fontSize: 13),
+                      ),
+                      const SizedBox(height: 14),
+                      ElevatedButton.icon(
+                        onPressed: _showManualEntryDialog,
+                        icon: const Icon(Icons.keyboard_alt_outlined),
+                        label: const Text('Enter Guardian ID Manually'),
+                        style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
           ),
 
           // ── Visual Scanner Overlay Box ─────────────

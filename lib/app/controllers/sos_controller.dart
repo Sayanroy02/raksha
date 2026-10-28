@@ -16,6 +16,7 @@ import '../services/geoapify_service.dart';
 import '../services/audio_capture_service.dart';
 import '../services/video_evidence_service.dart';
 import '../services/alert_notification_service.dart';
+import '../services/alarm_sound_service.dart';
 import '../theme/app_colors.dart';
 import '../utils/constants.dart';
 
@@ -116,15 +117,18 @@ class SosController extends GetxController {
       _startElapsedTimer();
       _startBroadcast();
 
+      // Activate loud siren alarm with noise
+      AlarmSoundService().startAlarm().ignore();
+
+      // Capture real ambient microphone audio during SOS emergency (live streaming to admin)
+      AudioCaptureService().startEmergencyRecording(
+        incidentId: incId.isNotEmpty ? incId : 'sos_${DateTime.now().millisecondsSinceEpoch}',
+        sosService: _sosService,
+      ).ignore();
+
       // Automatically send emergency live location email via Resend
       if (incId.isNotEmpty) {
         _sosService.sendEmailAlert(incId).ignore();
-
-        // Capture real ambient microphone audio during SOS emergency (live streaming to admin)
-        AudioCaptureService().startEmergencyRecording(
-          incidentId: incId,
-          sosService: _sosService,
-        ).ignore();
 
         // Automatically capture 30 seconds of video evidence and upload to backend
         VideoEvidenceService().start30sVideoEvidenceCapture(
@@ -141,14 +145,97 @@ class SosController extends GetxController {
     } catch (e) {
       Get.snackbar(
         'SOS Notice',
-        'SOS active in offline mode. Broadcasting location...',
+        'SOS active in offline mode. Broadcasting location and recording ambient audio...',
         snackPosition: SnackPosition.BOTTOM,
       );
       isActive.value = true;
       _startElapsedTimer();
+
+      // Offline audio recording and alarm
+      AudioCaptureService().startEmergencyRecording(
+        incidentId: 'offline_${DateTime.now().millisecondsSinceEpoch}',
+        sosService: _sosService,
+      ).ignore();
+      AlarmSoundService().startAlarm().ignore();
     } finally {
       isLoading.value = false;
       holdProgress.value = 0;
+    }
+  }
+
+  /// Trigger SOS automatically from external sensors (e.g. High Noise > 50 dB)
+  Future<void> triggerSosAutomatic({String triggerType = 'high_noise_detection'}) async {
+    if (isActive.value) {
+      AlarmSoundService().startAlarm().ignore();
+      return;
+    }
+
+    isLoading.value = true;
+    try {
+      final (lat, lng) = await _getFastPosition();
+      currentLat.value = lat;
+      currentLng.value = lng;
+
+      _geoapify.reverseGeocode(lat, lng).then((addr) {
+        lastKnownAddress.value = addr.formatted;
+      }).catchError((_) {});
+
+      final resp = await _sosService.triggerSos(
+        latitude: lat,
+        longitude: lng,
+        triggerType: triggerType,
+      );
+
+      final data = resp.data as Map<String, dynamic>?;
+      final incId = (data?['incident_id'] ?? data?['_id'] ?? data?['id'] ?? '').toString();
+      activeIncidentId.value = incId;
+      isActive.value = true;
+
+      _startElapsedTimer();
+      _startBroadcast();
+
+      // 1. Activate loud siren alarm with noise
+      AlarmSoundService().startAlarm().ignore();
+
+      // 2. Start recording ambient audio immediately
+      AudioCaptureService().startEmergencyRecording(
+        incidentId: incId.isNotEmpty ? incId : 'auto_${DateTime.now().millisecondsSinceEpoch}',
+        sosService: _sosService,
+      ).ignore();
+
+      if (incId.isNotEmpty) {
+        _sosService.sendEmailAlert(incId).ignore();
+        VideoEvidenceService().start30sVideoEvidenceCapture(
+          incidentId: incId,
+          sosService: _sosService,
+        ).ignore();
+      }
+
+      AlertNotificationService().dispatchEmergencyAlert(
+        title: '🚨 HIGH NOISE SOS ACTIVATED',
+        message: 'Loud noise (>50 dB) detected. Ambient audio recording & piercing siren alarm activated.',
+      );
+    } catch (e) {
+      isActive.value = true;
+      _startElapsedTimer();
+      AudioCaptureService().startEmergencyRecording(
+        incidentId: 'offline_${DateTime.now().millisecondsSinceEpoch}',
+        sosService: _sosService,
+      ).ignore();
+      AlarmSoundService().startAlarm().ignore();
+    } finally {
+      isLoading.value = false;
+      holdProgress.value = 0;
+    }
+  }
+
+  /// Toggle or mute alarm siren sound during active SOS
+  void toggleAlarm() {
+    final alarm = AlarmSoundService();
+    if (alarm.isAlarmPlaying.value) {
+      alarm.stopAlarm();
+    } else {
+      alarm.startAlarm();
     }
   }
 
@@ -243,6 +330,9 @@ class SosController extends GetxController {
     _broadcastTimer?.cancel();
     isLoading.value = true;
     try {
+      // Silence alarm siren immediately
+      await AlarmSoundService().stopAlarm();
+
       if (activeIncidentId.value.isNotEmpty) {
         // Finalize and upload any ongoing audio and video recording
         await AudioCaptureService().stopAndUploadRecording(
@@ -261,6 +351,7 @@ class SosController extends GetxController {
       elapsedTime.value      = '00:00';
     } catch (_) {
       isActive.value = false;
+      await AlarmSoundService().stopAlarm();
     } finally {
       isLoading.value = false;
     }

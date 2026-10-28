@@ -40,8 +40,9 @@ class DangerZoneAlertItem {
 
   factory DangerZoneAlertItem.fromJson(Map<String, dynamic> json) {
     List<List<double>> paths = [];
-    if (json['path_coordinates'] is List) {
-      for (var item in json['path_coordinates']) {
+    final rawPaths = json['path_coordinates'] ?? json['pathCoordinates'] ?? json['paths'];
+    if (rawPaths is List) {
+      for (var item in rawPaths) {
         if (item is List && item.length >= 2) {
           paths.add([
             (item[0] as num).toDouble(),
@@ -51,15 +52,21 @@ class DangerZoneAlertItem {
       }
     }
 
+    final rawType = (json['zone_type'] ?? json['zoneType'] ?? 'CIRCLE').toString().toUpperCase();
+    final normalizedType = (rawType.contains('ROAD') || rawType.contains('LINE')) ? 'ROAD_LINE' : 'CIRCLE';
+
     return DangerZoneAlertItem(
       id: (json['id'] ?? json['_id'] ?? '').toString(),
-      title: json['title'] ?? 'Unsafe Area',
-      description: json['description'] ?? 'Caution: Known hazardous or unlit zone.',
-      zoneType: json['zone_type'] ?? 'CIRCLE',
-      latitude: (json['latitude'] as num?)?.toDouble() ?? 0.0,
-      longitude: (json['longitude'] as num?)?.toDouble() ?? 0.0,
-      radiusM: (json['radius_m'] as num?)?.toDouble() ?? 300.0,
-      severity: json['severity'] ?? 'HIGH',
+      title: json['title']?.toString() ?? 'Unsafe Area',
+      description: json['description']?.toString() ?? 'Caution: Known hazardous or unlit zone.',
+      zoneType: normalizedType,
+      latitude: (json['latitude'] as num?)?.toDouble() ?? (json['lat'] as num?)?.toDouble() ?? 0.0,
+      longitude: (json['longitude'] as num?)?.toDouble() ?? (json['lng'] as num?)?.toDouble() ?? 0.0,
+      radiusM: (json['radius_m'] as num?)?.toDouble() ??
+          (json['radiusM'] as num?)?.toDouble() ??
+          (json['radius'] as num?)?.toDouble() ??
+          300.0,
+      severity: (json['severity'] ?? 'HIGH').toString().toUpperCase(),
       pathCoordinates: paths,
     );
   }

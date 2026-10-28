@@ -28,6 +28,14 @@ class LiveLocationView extends GetView<LocationController> {
         title: const Text('Live Location'),
         actions: [
           IconButton(
+            tooltip: 'Refresh Danger Zones',
+            icon: const Icon(Icons.refresh_rounded, color: Colors.amberAccent),
+            onPressed: () {
+              controller.loadDangerZones();
+              Get.snackbar('Synchronizing', 'Refreshing active danger zones from admin...', snackPosition: SnackPosition.TOP);
+            },
+          ),
+          IconButton(
             tooltip: 'Location History',
             icon: const Icon(Icons.history_rounded, color: Colors.white),
             onPressed: () => _showHistorySheet(context),
@@ -66,6 +74,45 @@ class LiveLocationView extends GetView<LocationController> {
             );
           }),
 
+          // ── Danger Zones Active Overlay Chip ──
+          Positioned(
+            top: 14,
+            left: 14,
+            child: Obx(() {
+              final count = controller.dangerZones.length;
+              if (count == 0) return const SizedBox.shrink();
+              return GestureDetector(
+                onTap: () => _showDangerZonesSheet(context),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.85),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.redAccent, width: 1.5),
+                    boxShadow: const [BoxShadow(color: Colors.black45, blurRadius: 6)],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.warning_amber_rounded, color: Colors.amberAccent, size: 18),
+                      const SizedBox(width: 6),
+                      Text(
+                        '$count Danger Zone${count > 1 ? "s" : ""} on Map',
+                        style: GoogleFonts.poppins(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      const Icon(Icons.arrow_drop_down, color: Colors.white70, size: 18),
+                    ],
+                  ),
+                ),
+              );
+            }),
+          ),
+
           // ── 2. Bottom Information & Sharing Card ───
           Positioned(
             left: 0,
@@ -74,6 +121,134 @@ class LiveLocationView extends GetView<LocationController> {
             child: _LocationInfoCard(sos: sos, locationCtrl: controller),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showDangerZonesSheet(BuildContext context) {
+    Get.bottomSheet(
+      Container(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+        decoration: const BoxDecoration(
+          color: AppColors.cardBg,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          border: Border(top: BorderSide(color: AppColors.divider)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2)),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.warning_amber_rounded, color: Colors.redAccent),
+                    const SizedBox(width: 10),
+                    Text(
+                      'Admin Danger Zones & Roads',
+                      style: GoogleFonts.poppins(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+                TextButton(
+                  onPressed: () {
+                    controller.loadDangerZones();
+                    Get.back();
+                  },
+                  child: const Text('Refresh', style: TextStyle(color: AppColors.primary, fontSize: 12)),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Obx(() {
+              final zones = controller.dangerZones;
+              if (zones.isEmpty) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 20),
+                  child: Center(
+                    child: Text('No active danger zones reported in this area.',
+                        style: GoogleFonts.poppins(color: AppColors.textSecondary, fontSize: 13)),
+                  ),
+                );
+              }
+              return ConstrainedBox(
+                constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.45),
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: zones.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 8),
+                  itemBuilder: (_, i) {
+                    final z = zones[i];
+                    final isRoad = z.zoneType == 'ROAD_LINE';
+                    return Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.scaffoldBg,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: z.severity == 'HIGH'
+                              ? Colors.redAccent.withValues(alpha: 0.5)
+                              : Colors.orangeAccent.withValues(alpha: 0.5),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            isRoad ? Icons.alt_route_rounded : Icons.radio_button_checked_rounded,
+                            color: z.severity == 'HIGH' ? Colors.redAccent : Colors.orangeAccent,
+                            size: 24,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  z.title,
+                                  style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                                ),
+                                Text(
+                                  '${isRoad ? "Corridor Road" : "${z.radiusM.toInt()}m Circle Radius"} • ${z.description}',
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: GoogleFonts.poppins(color: AppColors.textSecondary, fontSize: 11),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          ElevatedButton(
+                            onPressed: () {
+                              controller.focusDangerZone(z);
+                              Get.back();
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            ),
+                            child: Text('Fly to', style: GoogleFonts.poppins(fontSize: 11, color: Colors.white, fontWeight: FontWeight.bold)),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              );
+            }),
+          ],
+        ),
       ),
     );
   }

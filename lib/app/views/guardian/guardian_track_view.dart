@@ -17,6 +17,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../services/sos_service.dart';
 import '../../services/geoapify_service.dart';
+import '../../controllers/location_controller.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/raksha_visual_map.dart';
 
@@ -181,6 +182,9 @@ class _GuardianTrackViewState extends State<GuardianTrackView> {
                   showUserPulse: true,
                   isEmergency: _isEmergency,
                   addressText: _formattedAddress,
+                  dangerZones: Get.isRegistered<LocationController>()
+                      ? Get.find<LocationController>().dangerZones.toList()
+                      : const [],
                   onRecenter: _fetchTrackData,
                 ),
 

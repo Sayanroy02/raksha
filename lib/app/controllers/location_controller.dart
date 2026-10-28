@@ -32,6 +32,7 @@ class LocationController extends GetxController {
   final RxList<ll.LatLng> polyline = <ll.LatLng>[].obs;
 
   StreamSubscription<Position>? _positionStream;
+  Timer? _dangerZonesPollTimer;
 
   @override
   void onInit() {
@@ -39,6 +40,8 @@ class LocationController extends GetxController {
     _startTracking();
     _loadHistory();
     loadDangerZones();
+    _dangerZonesPollTimer?.cancel();
+    _dangerZonesPollTimer = Timer.periodic(const Duration(seconds: 15), (_) => loadDangerZones());
   }
 
   /// Fetches admin-marked danger zones and road line corridors in real time
@@ -57,6 +60,17 @@ class LocationController extends GetxController {
     } catch (e) {
       debugPrint('[LocationController] Error loading danger zones: $e');
     }
+  }
+
+  /// Centers map viewport on an admin-marked danger zone
+  void focusDangerZone(DangerZoneAlertItem zone) {
+    final lat = zone.zoneType == 'CIRCLE'
+        ? zone.latitude
+        : (zone.pathCoordinates.isNotEmpty ? zone.pathCoordinates.first[0] : zone.latitude);
+    final lng = zone.zoneType == 'CIRCLE'
+        ? zone.longitude
+        : (zone.pathCoordinates.isNotEmpty ? zone.pathCoordinates.first[1] : zone.longitude);
+    currentPoint.value = ll.LatLng(lat, lng);
   }
 
   // ── Live Tracking ────────────────────────────
@@ -278,6 +292,7 @@ class LocationController extends GetxController {
   @override
   void onClose() {
     _positionStream?.cancel();
+    _dangerZonesPollTimer?.cancel();
     super.onClose();
   }
 }

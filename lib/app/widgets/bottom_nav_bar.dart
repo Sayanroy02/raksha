@@ -16,7 +16,7 @@ class RakshaBottomNav extends StatelessWidget {
   static const _items = [
     _NavItem(Icons.home_rounded,          'Home',    AppRoutes.home),
     _NavItem(Icons.map_rounded,           'Map',     AppRoutes.liveLocation),
-    _NavItem(Icons.history_rounded,       'History', AppRoutes.locationHistory),
+    _NavItem(Icons.local_hospital_rounded,'Nearby',  AppRoutes.nearbyServices),
     _NavItem(Icons.person_outline_rounded,'Profile', AppRoutes.profile),
   ];
 

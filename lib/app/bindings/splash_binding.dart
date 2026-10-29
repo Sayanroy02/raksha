@@ -12,8 +12,9 @@ import '../controllers/location_controller.dart';
 import '../controllers/contacts_controller.dart';
 import '../controllers/profile_controller.dart';
 
-/// Registers all core services and central controllers permanently
-/// so no page ever crashes with 'Controller not found'.
+/// Registers all core services and sets up lazy, resilient controllers
+/// with fenix: true so nothing blocks startup on the splash screen,
+/// and controllers are always available across all page transitions.
 class SplashBinding extends Bindings {
   @override
   void dependencies() {
@@ -24,11 +25,13 @@ class SplashBinding extends Bindings {
     Get.put(ContactsService(Get.find()), permanent: true);
     Get.put(PermissionService(), permanent: true);
 
-    // Core Controllers (always available app-wide)
-    Get.put(AuthController(Get.find(), Get.find()), permanent: true);
-    Get.put(SosController(Get.find()), permanent: true);
-    Get.put(LocationController(), permanent: true);
-    Get.put(ContactsController(Get.find()), permanent: true);
-    Get.put(ProfileController(Get.find()), permanent: true);
+    // Lazy load controllers with fenix: true.
+    // They are instantiated ONLY when a page actually accesses them, preventing
+    // premature network requests or GPS permission dialogs on splash screen!
+    Get.lazyPut(() => AuthController(Get.find(), Get.find()), fenix: true);
+    Get.lazyPut(() => SosController(Get.find()), fenix: true);
+    Get.lazyPut(() => LocationController(), fenix: true);
+    Get.lazyPut(() => ContactsController(Get.find()), fenix: true);
+    Get.lazyPut(() => ProfileController(Get.find()), fenix: true);
   }
 }

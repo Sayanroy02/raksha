@@ -1,52 +1,137 @@
 // ─────────────────────────────────────────────
 //  storage_service.dart
-//  Wraps flutter_secure_storage to safely store
-//  JWT tokens and basic user data.
-//  Registered as a permanent GetX service so it
-//  is available across the entire app lifecycle.
+//  Wraps flutter_secure_storage with SharedPreferences fallback.
+//  Safe against Android Keystore decryption corruption & resets.
 // ─────────────────────────────────────────────
+import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/constants.dart';
 
 class StorageService {
-  // flutter_secure_storage uses the OS keychain / keystore
   final _secure = const FlutterSecureStorage(
-    aOptions: AndroidOptions(encryptedSharedPreferences: true),
+    aOptions: AndroidOptions(
+      encryptedSharedPreferences: true,
+      resetOnError: true,
+    ),
   );
 
   // ── Token helpers ────────────────────────────
 
-  Future<void> saveAccessToken(String token) =>
-      _secure.write(key: AppConstants.kAccessToken, value: token);
+  Future<void> saveAccessToken(String token) async {
+    try {
+      await _secure.write(key: AppConstants.kAccessToken, value: token);
+    } catch (e) {
+      debugPrint('[StorageService] Error writing access token: $e');
+    }
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(AppConstants.kAccessToken, token);
+    } catch (_) {}
+  }
 
-  Future<String?> getAccessToken() =>
-      _secure.read(key: AppConstants.kAccessToken);
+  Future<String?> getAccessToken() async {
+    try {
+      final token = await _secure.read(key: AppConstants.kAccessToken);
+      if (token != null && token.isNotEmpty) return token;
+    } catch (e) {
+      debugPrint('[StorageService] Error reading access token: $e');
+    }
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString(AppConstants.kAccessToken);
+    } catch (_) {
+      return null;
+    }
+  }
 
-  Future<void> saveRefreshToken(String token) =>
-      _secure.write(key: AppConstants.kRefreshToken, value: token);
+  Future<void> saveRefreshToken(String token) async {
+    try {
+      await _secure.write(key: AppConstants.kRefreshToken, value: token);
+    } catch (e) {
+      debugPrint('[StorageService] Error writing refresh token: $e');
+    }
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(AppConstants.kRefreshToken, token);
+    } catch (_) {}
+  }
 
-  Future<String?> getRefreshToken() =>
-      _secure.read(key: AppConstants.kRefreshToken);
+  Future<String?> getRefreshToken() async {
+    try {
+      final token = await _secure.read(key: AppConstants.kRefreshToken);
+      if (token != null && token.isNotEmpty) return token;
+    } catch (e) {
+      debugPrint('[StorageService] Error reading refresh token: $e');
+    }
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString(AppConstants.kRefreshToken);
+    } catch (_) {
+      return null;
+    }
+  }
 
-  Future<void> saveUserData(String json) =>
-      _secure.write(key: AppConstants.kUserData, value: json);
+  Future<void> saveUserData(String json) async {
+    try {
+      await _secure.write(key: AppConstants.kUserData, value: json);
+    } catch (e) {
+      debugPrint('[StorageService] Error writing user data: $e');
+    }
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(AppConstants.kUserData, json);
+    } catch (_) {}
+  }
 
-  Future<String?> getUserData() =>
-      _secure.read(key: AppConstants.kUserData);
+  Future<String?> getUserData() async {
+    try {
+      final data = await _secure.read(key: AppConstants.kUserData);
+      if (data != null && data.isNotEmpty) return data;
+    } catch (e) {
+      debugPrint('[StorageService] Error reading user data: $e');
+    }
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString(AppConstants.kUserData);
+    } catch (_) {
+      return null;
+    }
+  }
 
   /// Clears all tokens — called on logout
-  Future<void> clearAll() => _secure.deleteAll();
+  Future<void> clearAll() async {
+    try {
+      await _secure.deleteAll();
+    } catch (e) {
+      debugPrint('[StorageService] Error clearing secure storage: $e');
+    }
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(AppConstants.kAccessToken);
+      await prefs.remove(AppConstants.kRefreshToken);
+      await prefs.remove(AppConstants.kUserData);
+    } catch (_) {}
+  }
 
   // ── SharedPreferences (non-sensitive) ───────
 
   Future<bool> isFirstLaunch() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool(AppConstants.kFirstLaunch) ?? true;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getBool(AppConstants.kFirstLaunch) ?? true;
+    } catch (e) {
+      debugPrint('[StorageService] Error checking first launch: $e');
+      return true;
+    }
   }
 
   Future<void> setFirstLaunchDone() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(AppConstants.kFirstLaunch, false);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(AppConstants.kFirstLaunch, false);
+    } catch (e) {
+      debugPrint('[StorageService] Error setting first launch done: $e');
+    }
   }
 }

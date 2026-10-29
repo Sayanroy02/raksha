@@ -73,7 +73,12 @@ class ApiService {
             final refresh = await storage.getRefreshToken();
             if (refresh == null || refresh.isEmpty) {
               await storage.clearAll();
-              Get.offAllNamed(AppRoutes.login);
+              final current = Get.currentRoute;
+              if (current != AppRoutes.splash &&
+                  current != AppRoutes.onboarding &&
+                  current != AppRoutes.login) {
+                Get.offAllNamed(AppRoutes.login);
+              }
             }
           }
           handler.next(error);

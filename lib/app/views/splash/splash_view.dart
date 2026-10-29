@@ -25,36 +25,74 @@ class SplashView extends StatefulWidget {
 }
 
 class _SplashViewState extends State<SplashView> {
+  bool _hasNavigated = false;
+
   @override
   void initState() {
     super.initState();
-    // Navigate after a short delay so the animation can play
-    Future.delayed(const Duration(milliseconds: 2800), _navigate);
+    // 1. Primary navigation after splash branding animation
+    Future.delayed(const Duration(milliseconds: 2200), _safeNavigate);
+
+    // 2. Failsafe backup timer: GUARANTEES the app never hangs on splash
+    Future.delayed(const Duration(milliseconds: 4000), () {
+      if (!_hasNavigated && mounted) {
+        debugPrint('[SplashView] Failsafe backup timer triggered');
+        _safeNavigate();
+      }
+    });
   }
 
-  Future<void> _navigate() async {
-    final storage = Get.find<StorageService>();
+  Future<void> _safeNavigate() async {
+    if (_hasNavigated) return;
+    _hasNavigated = true;
 
-    // First ever launch → onboarding
-    final isFirst = await storage.isFirstLaunch();
-    if (isFirst) {
-      await storage.setFirstLaunchDone();
-      Get.offAllNamed(AppRoutes.onboarding);
-      return;
-    }
+    try {
+      final storage = Get.find<StorageService>();
 
-    // Returning user — check for a stored access token
-    final token = await storage.getAccessToken();
-    if (token != null) {
-      if (AppLockService().isLockEnabled) {
-        if (!mounted) return;
-        AppLockService().showUnlockBarrier(context, () {
-          Get.offAllNamed(AppRoutes.home);
-        });
-      } else {
-        Get.offAllNamed(AppRoutes.home);
+      // First ever launch → onboarding
+      bool isFirst = false;
+      try {
+        isFirst = await storage.isFirstLaunch().timeout(
+          const Duration(seconds: 2),
+          onTimeout: () => false,
+        );
+      } catch (_) {
+        isFirst = false;
       }
-    } else {
+
+      if (isFirst) {
+        try {
+          await storage.setFirstLaunchDone();
+        } catch (_) {}
+        Get.offAllNamed(AppRoutes.onboarding);
+        return;
+      }
+
+      // Returning user — check for a stored access token
+      String? token;
+      try {
+        token = await storage.getAccessToken().timeout(
+          const Duration(seconds: 2),
+          onTimeout: () => null,
+        );
+      } catch (_) {
+        token = null;
+      }
+
+      if (token != null && token.isNotEmpty) {
+        if (AppLockService().isLockEnabled) {
+          if (!mounted) return;
+          AppLockService().showUnlockBarrier(context, () {
+            Get.offAllNamed(AppRoutes.home);
+          });
+        } else {
+          Get.offAllNamed(AppRoutes.home);
+        }
+      } else {
+        Get.offAllNamed(AppRoutes.login);
+      }
+    } catch (e) {
+      debugPrint('[SplashView] Navigation exception: $e');
       Get.offAllNamed(AppRoutes.login);
     }
   }

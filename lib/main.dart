@@ -30,7 +30,11 @@ void main() async {
   }
 
   // Initialize App Lock Service (Device Lock & 4-Digit Security PIN)
-  await AppLockService().init();
+  try {
+    await AppLockService().init();
+  } catch (e) {
+    debugPrint('[Main] AppLock init error: $e');
+  }
 
   // Lock orientation to portrait for mobile — keeps UI consistent
   await SystemChrome.setPreferredOrientations([

@@ -18,14 +18,15 @@ import '../controllers/sos_controller.dart';
 import 'alarm_sound_service.dart';
 
 class NoiseDetectionService {
-  static final NoiseDetectionService _instance = NoiseDetectionService._internal();
+  static final NoiseDetectionService _instance =
+      NoiseDetectionService._internal();
   factory NoiseDetectionService() => _instance;
   NoiseDetectionService._internal();
 
   final AudioRecorder _recorder = AudioRecorder();
   final RxBool isMonitoring = false.obs;
   final RxDouble currentDecibels = 0.0.obs;
-  final RxDouble thresholdDb = 50.0.obs;
+  final RxDouble thresholdDb = 85.0.obs;
   final RxBool autoSosEnabled = true.obs;
 
   Timer? _sampleTimer;
@@ -60,10 +61,12 @@ class NoiseDetectionService {
       isMonitoring.value = true;
       _consecutiveHighSpikes = 0;
 
-      debugPrint('[NoiseDetectionService] 🎙️ Ambient noise sentinel started (Threshold: ${thresholdDb.value} dB)');
+      debugPrint(
+          '[NoiseDetectionService] 🎙️ Ambient noise sentinel started (Threshold: ${thresholdDb.value} dB)');
 
       _sampleTimer?.cancel();
-      _sampleTimer = Timer.periodic(const Duration(milliseconds: 300), (_) async {
+      _sampleTimer =
+          Timer.periodic(const Duration(milliseconds: 300), (_) async {
         await _sampleNoiseLevel();
       });
     } catch (e) {
@@ -111,12 +114,14 @@ class NoiseDetectionService {
   void _handleHighNoiseDetected(double detectedDb) {
     final now = DateTime.now();
     // Cooldown check: prevent re-triggering within 60 seconds
-    if (_lastTriggerTime != null && now.difference(_lastTriggerTime!).inSeconds < 60) {
+    if (_lastTriggerTime != null &&
+        now.difference(_lastTriggerTime!).inSeconds < 60) {
       return;
     }
     _lastTriggerTime = now;
 
-    debugPrint('[NoiseDetectionService] 🚨 CRITICAL NOISE SPIKE DETECTED: ${detectedDb.toInt()} dB > ${thresholdDb.value} dB! Triggering Automatic SOS!');
+    debugPrint(
+        '[NoiseDetectionService] 🚨 CRITICAL NOISE SPIKE DETECTED: ${detectedDb.toInt()} dB > ${thresholdDb.value} dB! Triggering Automatic SOS!');
 
     // 1. Activate loud siren alarm with noise
     AlarmSoundService().startAlarm();

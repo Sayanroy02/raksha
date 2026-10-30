@@ -82,7 +82,9 @@ class _NearbyServicesViewState extends State<NearbyServicesView> {
     setState(() => _isLoading = true);
 
     try {
-      final locCtrl = Get.isRegistered<LocationController>() ? Get.find<LocationController>() : null;
+      final locCtrl = Get.isRegistered<LocationController>()
+          ? Get.find<LocationController>()
+          : null;
       if (locCtrl != null) {
         _userLat = locCtrl.currentPoint.value.latitude;
         _userLng = locCtrl.currentPoint.value.longitude;
@@ -90,7 +92,8 @@ class _NearbyServicesViewState extends State<NearbyServicesView> {
       } else {
         final pos = await Geolocator.getLastKnownPosition() ??
             await Geolocator.getCurrentPosition(
-              locationSettings: const LocationSettings(accuracy: LocationAccuracy.medium),
+              locationSettings:
+                  const LocationSettings(accuracy: LocationAccuracy.medium),
             );
         _userLat = pos.latitude;
         _userLng = pos.longitude;
@@ -126,7 +129,9 @@ class _NearbyServicesViewState extends State<NearbyServicesView> {
             id: 'police_${places.length}',
             name: props['name']?.toString() ?? 'Police Station',
             type: 'police',
-            address: props['formatted']?.toString() ?? props['street']?.toString() ?? 'Emergency Police Division',
+            address: props['formatted']?.toString() ??
+                props['street']?.toString() ??
+                'Emergency Police Division',
             latitude: lat,
             longitude: lon,
             phone: '112',
@@ -156,9 +161,12 @@ class _NearbyServicesViewState extends State<NearbyServicesView> {
 
           places.add(EmergencyPlaceItem(
             id: 'hospital_${places.length}',
-            name: props['name']?.toString() ?? 'Emergency Hospital / Trauma Center',
+            name: props['name']?.toString() ??
+                'Emergency Hospital / Trauma Center',
             type: 'hospital',
-            address: props['formatted']?.toString() ?? props['street']?.toString() ?? '24/7 Healthcare Facility',
+            address: props['formatted']?.toString() ??
+                props['street']?.toString() ??
+                '24/7 Healthcare Facility',
             latitude: lat,
             longitude: lon,
             phone: '108',
@@ -189,7 +197,8 @@ class _NearbyServicesViewState extends State<NearbyServicesView> {
                 latitude: lat,
                 longitude: lng,
                 phone: item['phone'] ?? '112',
-                distanceMeters: Geolocator.distanceBetween(_userLat, _userLng, lat, lng),
+                distanceMeters:
+                    Geolocator.distanceBetween(_userLat, _userLng, lat, lng),
               ));
             }
           }
@@ -220,63 +229,66 @@ class _NearbyServicesViewState extends State<NearbyServicesView> {
     }
   }
 
-  List<EmergencyPlaceItem> _getVerifiedEmergencyDirectory(double uLat, double uLng) {
+  List<EmergencyPlaceItem> _getVerifiedEmergencyDirectory(
+      double uLat, double uLng) {
     final raw = [
       {
         'name': 'Siliguri Women Police Station',
         'type': 'police',
         'addr': 'Ward 11, Hakim Para, Siliguri',
-        'lat': uLat + 0.0072,
-        'lng': uLng + 0.0041,
-        'phone': '0353-2521100',
+        'lat': uLat + 26.70509538513058,
+        'lng': uLng + 88.42709039365975,
+        'phone': '03532662101',
       },
       {
         'name': 'Pradhan Nagar Police Station',
         'type': 'police',
         'addr': 'Pradhan Nagar, Junction Area, Siliguri',
-        'lat': uLat - 0.0084,
-        'lng': uLng + 0.0063,
-        'phone': '0353-2512100',
+        'lat': uLat - 26.735533272812116,
+        'lng': uLng + 88.41415021218789,
+        'phone': '03532510046',
       },
       {
         'name': 'Bhakti Nagar Police Station',
         'type': 'police',
         'addr': 'Sevoke Road, 2nd Mile, Siliguri',
-        'lat': uLat + 0.0120,
-        'lng': uLng - 0.0090,
-        'phone': '0353-2541100',
+        'lat': uLat + 26.74894453924021,
+        'lng': uLng - 88.43927168543793,
+        'phone': '03532543665',
       },
       {
         'name': 'Matigara Police Station',
         'type': 'police',
         'addr': 'NH 31, Matigara, Siliguri',
-        'lat': uLat - 0.0150,
-        'lng': uLng - 0.0110,
-        'phone': '112',
+        'lat': uLat - 26.720476615779447,
+        'lng': uLng - 88.38350786111808,
+        'phone': '03532571472',
       },
       {
         'name': 'Siliguri District Sadar Hospital (24/7)',
         'type': 'hospital',
-        'addr': 'Hospital Road, Siliguri',
-        'lat': uLat + 0.0051,
-        'lng': uLng - 0.0035,
-        'phone': '0353-2431050',
+        'addr': 'PC6H+94R, Ward 17, Hakim Para, Siliguri, West Bengal 734001',
+        'lat': uLat + 26.710992481159547,
+        'lng': uLng - 88.4277917691695,
+        'phone': '09476245535',
       },
       {
         'name': 'North Bengal Medical College & Hospital',
         'type': 'hospital',
-        'addr': 'Sushrutanagar, Siliguri',
-        'lat': uLat - 0.0180,
-        'lng': uLng - 0.0160,
-        'phone': '108',
+        'addr':
+            'D-5 Quarter Sushruta Nagar, Dist, Siliguri, West Bengal 734012',
+        'lat': uLat - 26.691842916298086,
+        'lng': uLng - 88.38639912717684,
+        'phone': '09593944414',
       },
       {
         'name': 'Anandaloke Multispeciality Hospital',
         'type': 'hospital',
-        'addr': 'Sevoke Road, Siliguri',
-        'lat': uLat + 0.0095,
-        'lng': uLng + 0.0085,
-        'phone': '0353-2540000',
+        'addr':
+            'Paresh Nagar, Sevoke Rd, Ward 44, Dasrath Pally, 2nd Mile, Siliguri, West Bengal 734001',
+        'lat': uLat + 26.730077676030884,
+        'lng': uLng + 88.43081982532992,
+        'phone': '03532544352',
       },
       {
         'name': 'Neotia Getwel Healthcare Centre',
@@ -285,6 +297,15 @@ class _NearbyServicesViewState extends State<NearbyServicesView> {
         'lat': uLat - 0.0135,
         'lng': uLng - 0.0075,
         'phone': '0353-6603000',
+      },
+      {
+        'name': 'Star Hospital',
+        'type': 'hospital',
+        'addr':
+            'MCP8+FQ8,Tinbatti More, SH12A, Ward 32, Babupara, Siliguri, West Bengal 734007',
+        'lat': uLat - 26.686232900763066,
+        'lng': uLng - 88.41691855836694,
+        'phone': '8001006060',
       },
     ];
 
@@ -311,7 +332,8 @@ class _NearbyServicesViewState extends State<NearbyServicesView> {
     final label = Uri.encodeComponent(place.name);
 
     // 1. Google Maps Navigation Intent (Sets destination coordinates directly)
-    final googleNavUrl = 'https://www.google.com/maps/dir/?api=1&destination=$lat,$lng&destination_place_id=$label';
+    final googleNavUrl =
+        'https://www.google.com/maps/dir/?api=1&destination=$lat,$lng&destination_place_id=$label';
     final geoUrl = 'geo:$lat,$lng?q=$lat,$lng($label)';
 
     try {
@@ -342,7 +364,8 @@ class _NearbyServicesViewState extends State<NearbyServicesView> {
   Widget build(BuildContext context) {
     final query = _searchCtrl.text.toLowerCase().trim();
     final filtered = _allPlaces.where((p) {
-      final matchesCat = _selectedCategory == 'all' || p.type == _selectedCategory;
+      final matchesCat =
+          _selectedCategory == 'all' || p.type == _selectedCategory;
       final matchesQuery = query.isEmpty ||
           p.name.toLowerCase().contains(query) ||
           p.address.toLowerCase().contains(query);
@@ -384,7 +407,8 @@ class _NearbyServicesViewState extends State<NearbyServicesView> {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.my_location_rounded, color: AppColors.primary, size: 20),
+                  const Icon(Icons.my_location_rounded,
+                      color: AppColors.primary, size: 20),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Column(
@@ -414,7 +438,8 @@ class _NearbyServicesViewState extends State<NearbyServicesView> {
                   ),
                   const SizedBox(width: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
                       color: Colors.greenAccent.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(8),
@@ -441,8 +466,10 @@ class _NearbyServicesViewState extends State<NearbyServicesView> {
                 style: const TextStyle(color: Colors.white, fontSize: 13),
                 decoration: InputDecoration(
                   hintText: 'Search police station, hospital, clinic...',
-                  hintStyle: const TextStyle(color: AppColors.textHint, fontSize: 13),
-                  prefixIcon: const Icon(Icons.search_rounded, color: AppColors.primary, size: 20),
+                  hintStyle:
+                      const TextStyle(color: AppColors.textHint, fontSize: 13),
+                  prefixIcon: const Icon(Icons.search_rounded,
+                      color: AppColors.primary, size: 20),
                   suffixIcon: _searchCtrl.text.isNotEmpty
                       ? IconButton(
                           icon: const Icon(Icons.clear_rounded, size: 18),
@@ -481,7 +508,8 @@ class _NearbyServicesViewState extends State<NearbyServicesView> {
                   ),
                   const SizedBox(width: 8),
                   _filterChip(
-                    label: '🚓 Police Stations (${_allPlaces.where((p) => p.type == 'police').length})',
+                    label:
+                        '🚓 Police Stations (${_allPlaces.where((p) => p.type == 'police').length})',
                     icon: Icons.local_police_rounded,
                     color: const Color(0xFF1E88E5),
                     isSelected: _selectedCategory == 'police',
@@ -489,7 +517,8 @@ class _NearbyServicesViewState extends State<NearbyServicesView> {
                   ),
                   const SizedBox(width: 8),
                   _filterChip(
-                    label: '🏥 Hospitals (${_allPlaces.where((p) => p.type == 'hospital').length})',
+                    label:
+                        '🏥 Hospitals (${_allPlaces.where((p) => p.type == 'hospital').length})',
                     icon: Icons.local_hospital_rounded,
                     color: const Color(0xFFE53935),
                     isSelected: _selectedCategory == 'hospital',
@@ -503,23 +532,29 @@ class _NearbyServicesViewState extends State<NearbyServicesView> {
             Expanded(
               child: _isLoading
                   ? const Center(
-                      child: CircularProgressIndicator(color: AppColors.primary),
+                      child:
+                          CircularProgressIndicator(color: AppColors.primary),
                     )
                   : filtered.isEmpty
                       ? Center(
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Icon(Icons.search_off_rounded, size: 48, color: AppColors.textHint),
+                              const Icon(Icons.search_off_rounded,
+                                  size: 48, color: AppColors.textHint),
                               const SizedBox(height: 12),
                               Text(
                                 'No matching places found',
-                                style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold),
+                                style: GoogleFonts.poppins(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold),
                               ),
                               const SizedBox(height: 4),
                               Text(
                                 'Try a different search keyword or category filter.',
-                                style: GoogleFonts.poppins(color: AppColors.textSecondary, fontSize: 12),
+                                style: GoogleFonts.poppins(
+                                    color: AppColors.textSecondary,
+                                    fontSize: 12),
                               ),
                             ],
                           ),
@@ -527,7 +562,8 @@ class _NearbyServicesViewState extends State<NearbyServicesView> {
                       : ListView.separated(
                           padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
                           itemCount: filtered.length,
-                          separatorBuilder: (_, __) => const SizedBox(height: 12),
+                          separatorBuilder: (_, __) =>
+                              const SizedBox(height: 12),
                           itemBuilder: (context, i) {
                             final place = filtered[i];
                             return _buildPlaceCard(place);
@@ -563,7 +599,8 @@ class _NearbyServicesViewState extends State<NearbyServicesView> {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 15, color: isSelected ? color : AppColors.textSecondary),
+            Icon(icon,
+                size: 15, color: isSelected ? color : AppColors.textSecondary),
             const SizedBox(width: 6),
             Text(
               label,
@@ -581,7 +618,8 @@ class _NearbyServicesViewState extends State<NearbyServicesView> {
 
   Widget _buildPlaceCard(EmergencyPlaceItem place) {
     final isPolice = place.type == 'police';
-    final themeColor = isPolice ? const Color(0xFF1E88E5) : const Color(0xFFE53935);
+    final themeColor =
+        isPolice ? const Color(0xFF1E88E5) : const Color(0xFFE53935);
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -606,7 +644,9 @@ class _NearbyServicesViewState extends State<NearbyServicesView> {
                   border: Border.all(color: themeColor.withValues(alpha: 0.5)),
                 ),
                 child: Icon(
-                  isPolice ? Icons.local_police_rounded : Icons.local_hospital_rounded,
+                  isPolice
+                      ? Icons.local_police_rounded
+                      : Icons.local_hospital_rounded,
                   color: themeColor,
                   size: 24,
                 ),
@@ -621,7 +661,8 @@ class _NearbyServicesViewState extends State<NearbyServicesView> {
                     Row(
                       children: [
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 7, vertical: 2),
                           decoration: BoxDecoration(
                             color: themeColor.withValues(alpha: 0.18),
                             borderRadius: BorderRadius.circular(6),
@@ -639,16 +680,20 @@ class _NearbyServicesViewState extends State<NearbyServicesView> {
                         const Spacer(),
                         // Distance Badge
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
                             color: Colors.greenAccent.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.greenAccent.withValues(alpha: 0.4)),
+                            border: Border.all(
+                                color:
+                                    Colors.greenAccent.withValues(alpha: 0.4)),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(Icons.near_me_rounded, color: Colors.greenAccent, size: 12),
+                              const Icon(Icons.near_me_rounded,
+                                  color: Colors.greenAccent, size: 12),
                               const SizedBox(width: 4),
                               Text(
                                 place.formattedDistance,
@@ -698,7 +743,8 @@ class _NearbyServicesViewState extends State<NearbyServicesView> {
                 flex: 3,
                 child: ElevatedButton.icon(
                   onPressed: () => _openGoogleMaps(place),
-                  icon: const Icon(Icons.map_rounded, size: 18, color: Colors.white),
+                  icon: const Icon(Icons.map_rounded,
+                      size: 18, color: Colors.white),
                   label: Text(
                     'Open in Google Maps',
                     style: GoogleFonts.poppins(
@@ -710,7 +756,8 @@ class _NearbyServicesViewState extends State<NearbyServicesView> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: themeColor,
                     padding: const EdgeInsets.symmetric(vertical: 10),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10)),
                   ),
                 ),
               ),
@@ -721,15 +768,18 @@ class _NearbyServicesViewState extends State<NearbyServicesView> {
                 flex: 2,
                 child: OutlinedButton.icon(
                   onPressed: () => _callPhone(place.phone),
-                  icon: const Icon(Icons.call_rounded, size: 16, color: Colors.white),
+                  icon: const Icon(Icons.call_rounded,
+                      size: 16, color: Colors.white),
                   label: Text(
                     'Call (${place.phone})',
-                    style: GoogleFonts.poppins(fontSize: 11, color: Colors.white),
+                    style:
+                        GoogleFonts.poppins(fontSize: 11, color: Colors.white),
                   ),
                   style: OutlinedButton.styleFrom(
                     side: const BorderSide(color: AppColors.divider),
                     padding: const EdgeInsets.symmetric(vertical: 10),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10)),
                   ),
                 ),
               ),
@@ -740,4 +790,3 @@ class _NearbyServicesViewState extends State<NearbyServicesView> {
     );
   }
 }
-
